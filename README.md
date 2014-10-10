@@ -1,12 +1,4 @@
 # Files
-- **./bin** : executables for Linux (works for Linux/AMD64, including AWS) and MacOS. 
-   Yes, I do check in binary now to save your setup time. Please check later section
-   on how to properly setup Go environment
-   - **Please checkout release branches for binaries, master branch is not for test run, will NOT have binaries**
-   - **hammer.linux** : Linux binary for amd64, this good for Linux server and AWS 64bit instance
-   - **hammer.macos** : Binary for MacOS, use it from your MBP
-   - **reporter.linux** : csv file reporter for linux
-   - **reporter.macos** : csv file reporter for MacOS
 - **build.sh** : script to build binaries
 - **hammer.mongo.go** : main file for the tool
 
@@ -60,4 +52,3 @@ Note:
 <pre>
   GOPATH=`pwd`:$GOPATH go get -d
 </pre>
-- Wiki page https://wiki.mongodb.com/display/10GEN/Design+Considerations+for+Hammer+Performance+Client
