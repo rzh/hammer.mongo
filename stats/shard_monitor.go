@@ -53,18 +53,22 @@ func getShardNumber(name string) int64 {
 func monitorShardCluster() {
 	_shard_monitor_channel = time.NewTicker(time.Second * time.Duration(10)) // monitor every 10 seconds
 
-	// count chunk for every shard
-	// this is the aggregation pipeline:
-	//     db.chunks.aggregate([{$project: {shard: 1, _id: 0}}, {$group: {_id: "$shard", count: {$sum: 1}}}])}}})
-	//         { "_id" : "shard0002", "count" : 2 }
-	//         { "_id" : "shard0001", "count" : 1 }
-	//         { "_id" : "shard0000", "count" : 1 }
-
 	var _t_total_chunk int64
+	var _t_chunk_size struct {
+		Size int64 `bson:"value"`
+	}
+
 	_chunks := []ShardChunk{}
 
 	for {
 		_t_total_chunk = 0
+
+		// count chunk for every shard
+		// this is the aggregation pipeline:
+		//     db.chunks.aggregate([{$project: {shard: 1, _id: 0}}, {$group: {_id: "$shard", count: {$sum: 1}}}])}}})
+		//         { "_id" : "shard0002", "count" : 2 }
+		//         { "_id" : "shard0001", "count" : 1 }
+		//         { "_id" : "shard0000", "count" : 1 }
 		_shard_mongos_session.DB("config").C("chunks").Pipe(
 			[]bson.M{
 				{"$project": bson.M{"shard": 1, "_id": 0}},
@@ -75,7 +79,13 @@ func monitorShardCluster() {
 			_t_total_chunk += ShardChunk(_chunks[i]).Count
 			_shard_chunk_number[getShardNumber(_chunks[i].Id)] = _chunks[i].Count
 		}
-		log.Printf("%v\t%d\n", _shard_chunk_number, _t_total_chunk)
+
+		// to get chunk size
+		// > db.settings.find()
+		//      { "_id" : "chunksize", "value" : 64 })
+		_shard_mongos_session.DB("config").C("settings").Find(bson.M{"_id": "chunksize"}).One(&_t_chunk_size)
+
+		log.Printf("%v\t%d\t%d\n", _shard_chunk_number, _t_total_chunk, _t_chunk_size.Size)
 		<-_shard_monitor_channel.C
 	}
 }
@@ -102,6 +112,31 @@ func initShardCluster() {
 	if err != nil {
 		log.Fatalln("Cannot open mongos connection to ", _env_mongos)
 	}
+
+	// make sure sharding and collection is setup properly
+
+	// 1. drop db
+	_shard_mongos_session.DB("htest1").DropDatabase()
+
+	// 2. insert one doc into collection
+	_shard_mongos_session.DB("htest1").C("htest1").Insert(bson.M{"a": 100})
+
+	// 3. enable sharding
+	err = _shard_mongos_session.DB("admin").Run(bson.D{{"enableSharding", "htest1"}}, nil)
+	if err != nil {
+		log.Fatalln("Failed to shard DB with error: ", err)
+	}
+
+	err = _shard_mongos_session.DB("htest1").C("htest1").EnsureIndex(mgo.Index{Key: []string{"$hashed:_id"}})
+	if err != nil {
+		log.Fatalln("Failed to create hashed index for collection with error: ", err)
+	}
+
+	err = _shard_mongos_session.DB("admin").Run(bson.D{{"shardCollection", "htest1.htest1"}, {"key", bson.M{"_id": "hashed"}}}, nil)
+	if err != nil {
+		log.Fatalln("Failed to shard collection with error: ", err)
+	}
+
 }
 
 func init() {
