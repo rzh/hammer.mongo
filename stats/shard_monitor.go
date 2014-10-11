@@ -141,8 +141,8 @@ func initShardCluster() {
 
 func init() {
 	// hack for test
-	os.Setenv("HT_MONITOR_SHARD", "true")
-	os.Setenv("HT_MONGOS_URL", "54.68.41.49:27017")
+	//  os.Setenv("HT_MONITOR_SHARD", "true")
+	// .Setenv("HT_MONGOS_URL", "54.68.41.49:27017")
 
 	s := os.Getenv("HT_MONITOR_SHARD")
 	if s != "" {
