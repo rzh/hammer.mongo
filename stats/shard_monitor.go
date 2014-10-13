@@ -85,7 +85,7 @@ func monitorShardCluster() {
 		//      { "_id" : "chunksize", "value" : 64 })
 		_shard_mongos_session.DB("config").C("settings").Find(bson.M{"_id": "chunksize"}).One(&_t_chunk_size)
 
-		log.Printf("%v\t%d\t%d\n", _shard_chunk_number, _t_total_chunk, _t_chunk_size.Size)
+		log.Printf("\t%d\t%d\t%d\t|\t%d\t%d\n", _shard_chunk_number[0], _shard_chunk_number[1], _shard_chunk_number[2], _t_total_chunk, _t_chunk_size.Size)
 		<-_shard_monitor_channel.C
 	}
 }
