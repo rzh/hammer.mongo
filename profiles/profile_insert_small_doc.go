@@ -53,12 +53,16 @@ type SmallDoc struct {
 func (i insertSmallProfile) SendNext(s *mgo.Session, worker_id int) error {
 	c := s.DB(getDBName(default_db_name_prefix)).C(getCollectionName(default_col_name_prefix))
 	var err error
+	var results interface{}
 
-	// _u := atomic.AddInt64(&_insertSmallProfile.UID, 1) // to make this unique
+	_u := atomic.AddInt64(&_insertSmallProfile.UID, 1) // to make this unique
 	// var _u int64 = 0
 
-	c.Insert(bson.M{"a": 100})
-	return nil
+	// return c.Insert(bson.M{"_id": _u})
+        err = c.Database.Run(bson.D{{"insert",    c.Name},
+                		    {"documents", []bson.M{bson.M{"_id": _u} }}}, results)
+
+	return err
 
 	// err = c.Insert(&Person{Name: 100, UID: bson.ObjectIdHex(fmt.Sprintf("%#x", _u)), Group: 100}) // insert a new record
 	err = c.Insert(bson.M{"name": 100, "uid": "string", "group": 100}) // insert a new record

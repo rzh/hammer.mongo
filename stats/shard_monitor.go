@@ -137,6 +137,9 @@ func initShardCluster() {
 		log.Fatalln("Failed to shard collection with error: ", err)
 	}
 
+
+	// sleep for 1 second to give the cluster sometime
+	time.Sleep(1000 * time.Millisecond)
 }
 
 func init() {
@@ -172,6 +175,8 @@ func init() {
 	// a few special cases for test shard/auto-split
 	_shard_chunk_number = make([]int64, 3, 3)
 
-	initShardCluster()
-	go monitorShardCluster()
+	if _env_monitor_shard {
+		initShardCluster()
+		go monitorShardCluster()
+	}
 }
