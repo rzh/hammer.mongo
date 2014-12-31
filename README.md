@@ -52,3 +52,7 @@ Note:
 <pre>
   GOPATH=`pwd`:$GOPATH go get -d
 </pre>
+- Make sure install proper packages with following command from the hammer.mongo folder
+<pre>
+  go get -d
+</pre>
