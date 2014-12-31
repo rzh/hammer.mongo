@@ -18,6 +18,9 @@ export HT_CMD_TOTAL_TIME=40
 # how long shall the run in number of OP, 0 means infinity
 export HT_CMD_TOTAL_OPS=0
 
+# whether to use legacy Op, value shall be 0: use writeCmd or 1: use legacy op
+export HT_USE_LEGACY_WRITE=0
+
 # server URL
 export HT_SERVER_URL="localhost:27017"
 

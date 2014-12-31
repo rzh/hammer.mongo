@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"gopkg.in/mgo.v2"
 	"github.com/rzh/hammer.mongo/stats"
+	"gopkg.in/mgo.v2"
 )
 
 // Profile is the interface to define Profiles.
@@ -39,6 +39,7 @@ var _mutex sync.Mutex // mutext to prevent logfile corruption
 var _multi_db int
 var _multi_col int
 var _db_name string
+var _profile_use_legacy_write bool
 
 const alpha_numeric_chars_with_space = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 abcdefghijklmnopqrstuvwxyz"
 const alpha_numeric_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz"
@@ -88,32 +89,32 @@ func registerProfile(_name string, _func getNextFunc) {
 func init() {
 	_profiles = make(map[string]getNextFunc)
 
-	s := os.Getenv("HT_MULTI_DB")
 	var err error
-
-	if s == "" {
-		_multi_db = 1
-	} else {
-		_multi_db, err = strconv.Atoi(s)
-		panicOnError(err)
-		log.Println("multi DB with ", s, "|", _multi_col)
-
-		if _multi_db <= 0 {
-			log.Panicln("Got HT_MUTLI_DB $le 0, valure read ==>", _multi_db)
-		}
-	}
-
-	s = os.Getenv("HT_MULTI_COLLECTION")
+	s := os.Getenv("HT_MULTI_COLLECTION")
 
 	if s == "" {
 		_multi_col = 1
 	} else {
 		_multi_col, err = strconv.Atoi(s)
 		panicOnError(err)
-		log.Println("multi collection with ", s, "|", _multi_col)
+		log.Println("multi collection with ", _multi_col)
 
 		if _multi_col <= 0 {
 			log.Panicln("Got HT_MUTLI_DB $le 0, valure read ==>", _multi_col)
+		}
+	}
+
+	s = os.Getenv("HT_MULTI_DB")
+
+	if s == "" {
+		_multi_db = 1
+	} else {
+		_multi_db, err = strconv.Atoi(s)
+		panicOnError(err)
+		log.Println("multi DB with ", s, "| and multi collection ", _multi_col)
+
+		if _multi_db <= 0 {
+			log.Panicln("Got HT_MUTLI_DB $le 0, valure read ==>", _multi_db)
 		}
 	}
 
@@ -123,6 +124,18 @@ func init() {
 		_db_name = "htest"
 	} else {
 		_db_name = s
+	}
+
+	s = os.Getenv("HT_USE_LEGACY_WRITE")
+
+	if s == "" || s == "0" {
+		_profile_use_legacy_write = false
+	} else if s == "1" {
+		_profile_use_legacy_write = true
+		log.Println("HT: use legacy write op")
+	} else {
+		log.Println("HT_USE_LEGACY_WRITE shall be either 0 or 1, got ", s)
+		os.Exit(1)
 	}
 }
 
@@ -203,4 +216,20 @@ func normalInRange(drange int64, stdDev float64) int64 {
 		i = int64((rand.NormFloat64()*stdDev + 0.5) * float64(drange))
 	}
 	return i
+}
+
+func getOSEnvFlag(f string, low int, _default int) int {
+	s := os.Getenv(f)
+
+	if s != "" {
+		i, err := strconv.Atoi(s)
+		panicOnError(err)
+
+		if i < low {
+			log.Panicln(f, " must greater than ", low, ", received ", i)
+		}
+
+		return i
+	}
+	return _default
 }
