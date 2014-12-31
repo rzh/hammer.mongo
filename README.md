@@ -2,7 +2,7 @@
 - **build.sh** : script to build binaries
 - **hammer.mongo.go** : main file for the tool
 
-# How to use:
+# Usage:
 - Command line options:
    <pre>
 Usage of ./bin/hammer.macos:
@@ -25,7 +25,7 @@ Usage of ./bin/hammer.macos:
 
 a sample run:
 <pre>
-GOPATH=`pwd`:$GOPATH go run hammer.mongo.go -monitor 1 -max -worker 9 -server localhost:27017 -max -initdb=true -profile=insert
+GOPATH=\`pwd\`:$GOPATH go run hammer.mongo.go -monitor 1 -max -worker 9 -server localhost:27017 -max -initdb=true -profile=insert
 </pre>
 
 use the binary 
@@ -37,12 +37,9 @@ use the binary
 ./hammer.linux -monitor 1 -server ec2-107-21-153-123.compute-1.amazonaws.com:27017 -thread 4 -max -initdb=false -max=true -profile=insertsmall -worker 8 -total=95000
 </pre>
 
-to use the binary together with the reporter:
-<pre>
-./bin/hammer.linux -monitor 1 -worker 18 -server localhost:27017 -rps=1000 -initdb=true -profile=QA408; cat perf_test_data.csv| ./bin/reporter.linux
-</pre>
 
-Note:
+# How to Build or Run from the source:
+The build.sh will build hammer.mongo for Mac OS and Linux 64, to do it, you have to:
 - To build the tool, please make sure your Go is installed and setup properly. Please refer to this doc http://golang.org/doc/install. For Mac OS, the easier way it to use homebrew to install with --cross-compile-common option:
 <pre>
   brew install go --cross-compile-common
@@ -50,9 +47,13 @@ Note:
 - For cross platform build, make sure you compile Go runtime properly, please refer to this blog for details: http://dave.cheney.net/2012/09/08/an-introduction-to-cross-compilation-with-go. You will not need this if you install with homebrew according to the above step.
 - You will need install proper Go package, run following command after your GOPATH is properly set
 <pre>
-  GOPATH=`pwd`:$GOPATH go get -d
+  GOPATH=\`pwd\`:$GOPATH go get -d
 </pre>
-- Make sure install proper packages with following command from the hammer.mongo folder
+- Run build.sh, which will build binaries under ./bin folder,
 <pre>
-  go get -d
+$ ls -1 ./bin
+hammer.linux
+hammer.macos
 </pre>
+- To run from source, simple run <b><i>go run hammer.mongo.go ...</i></b> with all the options.
+
