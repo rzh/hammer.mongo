@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"gopkg.in/mgo.v2"
 	"github.com/rzh/hammer.mongo/stats"
+	"gopkg.in/mgo.v2"
 )
 
 // Profile is the interface to define Profiles.
@@ -20,6 +20,18 @@ type Profile interface {
 	SetupTest(s *mgo.Session, _initdb bool) error
 	CsvString(total_time float64) string
 	CsvHeader() string
+}
+
+type ProfileFinalFunc interface {
+	Final(c *mgo.Session) // will be run before program exit, used for correctness check
+}
+
+var finalFunc *ProfileFinalFunc = nil
+
+func CallFinalFunc(c *mgo.Session) {
+	if finalFunc != nil {
+		(*finalFunc).Final(c)
+	}
 }
 
 // // var _hammer_stats *stats.Stats
@@ -61,8 +73,6 @@ func GetProfileCSVHeader() string {
 }
 
 func GetProfile(s string) Profile {
-	// fmt.Println("Get profile", s)
-
 	if _, ok := _profiles[s]; ok {
 		_currentProfile = _profiles[s]()
 		return _profiles[s]()
@@ -132,7 +142,6 @@ func getDBName(prefix string) string {
 	if _multi_db == 1 {
 		return fmt.Sprint(prefix, 1)
 	} else {
-		// fmt.Println("read random db ", prefix, _multi_db)
 		return fmt.Sprint(prefix, rand.Intn(_multi_db)+1)
 	}
 }
@@ -141,7 +150,6 @@ func getCollectionName(prefix string) string {
 	if _multi_col == 1 {
 		return fmt.Sprint(prefix, 1)
 	} else {
-		// fmt.Println("read random collection ", prefix, _multi_col)
 		return fmt.Sprint(prefix, rand.Intn(_multi_col)+1)
 	}
 }
@@ -173,7 +181,6 @@ func logData(_title string, _ops string, _count int, _counted int, _time int64) 
 		_logFile.WriteString(fmt.Sprintf("%s - %s, %d, %d, %4.4f\n", _title, _ops, _count, _counted, float64(_time)/1000000.0))
 		_mutex.Unlock()
 	}
-	// log.Println("LOG -- ", _title, _ops, _count, _counted, float64(_time)/1000000.0)
 }
 
 func queryMongo(collection *mgo.Collection, query interface{}, queryLimit int, batchSize int) *mgo.Query {
