@@ -2,14 +2,15 @@ package profiles
 
 import (
 	"fmt"
-
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 	"log"
+	"math/rand"
 	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
+
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 /*
@@ -28,7 +29,7 @@ type insertSmallProfile struct {
 
 var _insertSmallProfile insertSmallProfile
 var qa373ArrayPayload [25]int
-var has_id bool = true
+var insert_with_id bool = true
 
 type SmallDoc struct {
 	Name    int64
@@ -40,10 +41,14 @@ type SmallDoc struct {
 func (i insertSmallProfile) SendNext(s *mgo.Session, worker_id int) error {
 	c := s.DB(getDBName(default_db_name_prefix)).C(getCollectionName(default_col_name_prefix))
 	var err error
+	var doc bson.M
 
-	_u := atomic.AddInt64(&_insertSmallProfile.UID, 1) // to make this unique
-
-	doc := bson.M{"a": _u}
+	if insert_with_id {
+		_u := atomic.AddInt64(&_insertSmallProfile.UID, 1) // to make this unique
+		doc = bson.M{"_id": _u, "group": rand.Int63()}
+	} else {
+		doc = bson.M{"group": rand.Int63()}
+	}
 
 	if _profile_use_legacy_write {
 		err = c.Insert(doc)
@@ -65,11 +70,11 @@ func (i insertSmallProfile) SetupTest(s *mgo.Session, _initdb bool) error {
 
 		if _initdb {
 			_insertSmallProfile.MaxUID = 0
-			for i := 1; i < _multi_db; i++ {
-				for j := 1; j < _multi_col; j++ {
-					_ = s.DB(default_db_name_prefix + strconv.Itoa(i)).C(default_col_name_prefix + strconv.Itoa(j))
+			for i := 1; i <= _multi_db; i++ {
+				for j := 1; j <= _multi_col; j++ {
+					c := s.DB(default_db_name_prefix + strconv.Itoa(i)).C(default_col_name_prefix + strconv.Itoa(j))
 					if _insertSmallProfile.indexGroup {
-						// c.EnsureIndexKey("group")
+						c.EnsureIndexKey("group")
 					}
 				}
 			}
@@ -84,8 +89,8 @@ func (i insertSmallProfile) SetupTest(s *mgo.Session, _initdb bool) error {
 				panic("cannot count collection")
 			}
 
-			for i := 1; i < _multi_db; i++ {
-				for j := 1; j < _multi_col; j++ {
+			for i := 1; i <= _multi_db; i++ {
+				for j := 1; j <= _multi_col; j++ {
 					if _insertSmallProfile.indexGroup {
 						c.EnsureIndexKey("group")
 					}
@@ -122,19 +127,19 @@ func init() {
 		qa373ArrayPayload[i] = i
 	}
 
-	s := os.Getenv("HT_INDEX_GROUP")
+	s := os.Getenv("HT_INDEX_FIELD_GROUP")
 	if s == "" {
 		_insertSmallProfile.indexGroup = false
 	} else {
 		_insertSmallProfile.indexGroup = true
 	}
 
-	s = os.Getenv("HT_INSERT_NO_ID")
+	s = os.Getenv("HT_INSERT_WITH_ID")
 	if s != "" {
 		log.Println("HT: send without _id")
-		has_id = false
+		insert_with_id = false
 	} else {
 		log.Println("HT: send with _id")
-		has_id = true
+		insert_with_id = true
 	}
 }
