@@ -3,14 +3,15 @@ package profiles
 import (
 	"fmt"
 
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 	"log"
 	"math/rand"
 	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
+
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 /*
@@ -38,12 +39,10 @@ func (i bulkInsertProfile) SendNext(s *mgo.Session, worker_id int) error {
 	var results interface{}
 
 	_u := atomic.AddInt64(&_bulkInsertProfile.UID, 1) // to make this unique
-	// var _u int64 = 0
 
 	var docs []bson.M = make([]bson.M, ht_insert_batch_size)
 
 	for i := 0; i < ht_insert_batch_size; i++ {
-		// doc without _id
 		docs[i] = bson.M{
 			"_id": _u,
 			// "payload": payload_400k,
@@ -51,157 +50,13 @@ func (i bulkInsertProfile) SendNext(s *mgo.Session, worker_id int) error {
 		}
 	}
 
-	// return c.Insert(bson.M{"_id": _u})
-	err = c.Database.Run(bson.D{{"insert", c.Name},
-		{"documents", docs}}, results)
+	if _profile_use_legacy_write {
+		err = c.Insert(docs)
+	} else {
+		err = c.Database.Run(bson.D{{"insert", c.Name},
+			{"documents", docs}}, results)
+	}
 
-	return err
-
-	// err = c.Insert(&Person{Name: 100, UID: bson.ObjectIdHex(fmt.Sprintf("%#x", _u)), Group: 100}) // insert a new record
-	// err = c.Insert(bson.M{"name": 100, "uid": "string", "group": 100}) // insert a new record
-	/*
-		if has_id {
-			err = c.Insert(bson.M{
-				//"_id":     _u + _bulkInsertProfile.MaxUID,
-				"f1":  "12345678",
-				"f2":  "12345678",
-				"f3":  "12345678",
-				"f4":  "12345678",
-				"f5":  "12345678",
-				"f6":  "12345678",
-				"f7":  "12345678",
-				"f8":  "12345678",
-				"f9":  "12345678",
-				"f10": "12345678",
-				"f11": "12345678",
-				"f12": "12345678",
-				"f13": "12345678",
-				"f14": "12345678",
-				"f15": "12345678",
-				"f16": "12345678",
-				"f17": "12345678",
-				"f18": "12345678",
-				"f19": "12345678",
-				"f20": "12345678",
-				"i1":  "12345678",
-				"i2":  "12345678",
-				"i3":  "12345678",
-				"i4":  "12345678",
-				"i5":  "12345678",
-				"i6":  "12345678",
-				"i7":  "12345678",
-				"i8":  "12345678",
-				"i9":  "12345678",
-				"i10": "12345678",
-				"i11": "12345678",
-				"i12": "12345678",
-				"i13": "12345678",
-				"i14": "12345678",
-				"i15": "12345678",
-				"i16": "12345678",
-				"i17": "12345678",
-				"i18": "12345678",
-				"i19": "12345678",
-				"i20": "12345678",
-				"t1":  "12345678",
-				"t2":  "12345678",
-				"t3":  "12345678",
-				"t4":  "12345678",
-				"t5":  "12345678",
-				"t6":  "12345678",
-				"t7":  "12345678",
-				"t8":  "12345678",
-				"t9":  "12345678",
-				"t10": "12345678",
-				"t11": "12345678",
-				"t12": "12345678",
-				"t13": "12345678",
-				"t14": "12345678",
-				"t15": "12345678",
-				"t16": "12345678",
-				"t17": "12345678",
-				"t18": "12345678",
-				"t19": "12345678",
-				"t20": "12345678",
-				//"payload": &qa373ArrayPayload})
-				"_id":  bson.NewObjectId(),
-				"name": _u + _bulkInsertProfile.MaxUID})
-			//"group":   rand.Intn(1000),
-			//"payload": &qa373ArrayPayload})
-		} else {
-			err = c.Insert(bson.M{
-				"xid":  bson.NewObjectId(),
-				"f1":   "12345678",
-				"f2":   "12345678",
-				"f3":   "12345678",
-				"f4":   "12345678",
-				"f5":   "12345678",
-				"f6":   "12345678",
-				"f7":   "12345678",
-				"f8":   "12345678",
-				"f9":   "12345678",
-				"f10":  "12345678",
-				"f11":  "12345678",
-				"f12":  "12345678",
-				"f13":  "12345678",
-				"f14":  "12345678",
-				"f15":  "12345678",
-				"f16":  "12345678",
-				"f17":  "12345678",
-				"f18":  "12345678",
-				"f19":  "12345678",
-				"f20":  "12345678",
-				"i1":   "12345678",
-				"i2":   "12345678",
-				"i3":   "12345678",
-				"i4":   "12345678",
-				"i5":   "12345678",
-				"i6":   "12345678",
-				"i7":   "12345678",
-				"i8":   "12345678",
-				"i9":   "12345678",
-				"i10":  "12345678",
-				"i11":  "12345678",
-				"i12":  "12345678",
-				"i13":  "12345678",
-				"i14":  "12345678",
-				"i15":  "12345678",
-				"i16":  "12345678",
-				"i17":  "12345678",
-				"i18":  "12345678",
-				"i19":  "12345678",
-				"i20":  "12345678",
-				"t1":   "12345678",
-				"t2":   "12345678",
-				"t3":   "12345678",
-				"t4":   "12345678",
-				"t5":   "12345678",
-				"t6":   "12345678",
-				"t7":   "12345678",
-				"t8":   "12345678",
-				"t9":   "12345678",
-				"t10":  "12345678",
-				"t11":  "12345678",
-				"t12":  "12345678",
-				"t13":  "12345678",
-				"t14":  "12345678",
-				"t15":  "12345678",
-				"t16":  "12345678",
-				"t17":  "12345678",
-				"t18":  "12345678",
-				"t19":  "12345678",
-				"t20":  "12345678",
-				"name": _u + _bulkInsertProfile.MaxUID})
-			//"group":   rand.Intn(1000),
-			//"payload": &qa373ArrayPayload})
-		}
-		// "payload1": &Payload1,
-		// "payload2": &Payload2,
-		// "payload3": &Payload3,
-		// "payload4": &Payload4,
-		// "payload5": &Payload5,
-		// "payload6": &Payload6
-	*/
 	return err
 }
 

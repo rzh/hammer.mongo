@@ -70,22 +70,15 @@ func (i insertProfile) SendNext(s *mgo.Session, worker_id int) error {
 		"payload5": &Payload5,
 		"payload6": &Payload6}
 
-	// err := c.Insert(&Person{Name: 100, UID: bson.ObjectIdHex(fmt.Sprintf("%#x", _u)), Group: 100}) // insert a new record
 	if _profile_use_legacy_write {
-
 		err = c.Insert(doc)
-
 	} else {
-		var docs []bson.M = make([]bson.M, 1)
 		var results interface{}
 
-		docs[0] = doc
-
 		err = c.Database.Run(bson.D{{"insert", c.Name},
-			{"documents", docs}}, results)
+			{"documents", []bson.M{doc}}}, results)
 	}
 
-	panicOnError(err)
 	panicOnError(err)
 	return err
 }
