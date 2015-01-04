@@ -21,8 +21,6 @@ type insertSmallProfile struct {
 	UID    int64
 	MaxUID int64
 
-	indexGroup bool
-
 	session     *mgo.Session
 	initProfile sync.Once
 }
@@ -30,6 +28,7 @@ type insertSmallProfile struct {
 var _insertSmallProfile insertSmallProfile
 var qa373ArrayPayload [25]int
 var insert_with_id bool = true
+var __index_field_group bool = false
 
 type SmallDoc struct {
 	Name    int64
@@ -66,14 +65,13 @@ func (i insertSmallProfile) SetupTest(s *mgo.Session, _initdb bool) error {
 
 	f := func() {
 		_initdb = false
-		// InitSimpleTest(s, _initdb)
 
 		if _initdb {
 			_insertSmallProfile.MaxUID = 0
 			for i := 1; i <= _multi_db; i++ {
 				for j := 1; j <= _multi_col; j++ {
 					c := s.DB(default_db_name_prefix + strconv.Itoa(i)).C(default_col_name_prefix + strconv.Itoa(j))
-					if _insertSmallProfile.indexGroup {
+					if __index_field_group {
 						c.EnsureIndexKey("group")
 					}
 				}
@@ -91,7 +89,7 @@ func (i insertSmallProfile) SetupTest(s *mgo.Session, _initdb bool) error {
 
 			for i := 1; i <= _multi_db; i++ {
 				for j := 1; j <= _multi_col; j++ {
-					if _insertSmallProfile.indexGroup {
+					if __index_field_group {
 						c.EnsureIndexKey("group")
 					}
 				}
@@ -129,9 +127,9 @@ func init() {
 
 	s := os.Getenv("HT_INDEX_FIELD_GROUP")
 	if s == "" {
-		_insertSmallProfile.indexGroup = false
+		__index_field_group = false
 	} else {
-		_insertSmallProfile.indexGroup = true
+		__index_field_group = true
 	}
 
 	s = os.Getenv("HT_INSERT_WITH_ID")
