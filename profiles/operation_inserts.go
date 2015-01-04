@@ -3,8 +3,6 @@ package profiles
 import (
 	"log"
 	"math/rand"
-	"os"
-	"strconv"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -177,22 +175,6 @@ func write_insert_doc(c *mgo.Collection, MaxUID int) error {
 		log.Println(err)
 	}
 	return err
-}
-
-func getOSEnvFlag(f string, low int, _default int) int {
-	s := os.Getenv(f)
-
-	if s != "" {
-		i, err := strconv.Atoi(s)
-		panicOnError(err)
-
-		if i < low {
-			log.Panicln(f, " must greater than ", low, ", received ", i)
-		}
-
-		return i
-	}
-	return _default
 }
 
 func init() {

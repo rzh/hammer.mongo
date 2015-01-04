@@ -37,6 +37,19 @@ use the binary
 ./hammer.linux -monitor 1 -server ec2-107-21-153-123.compute-1.amazonaws.com:27017 -thread 4 -max -initdb=false -max=true -profile=insertsmall -worker 8 -total=95000
 </pre>
 
+# Quick Install:
+The fast way to install hammer.mongo is to use go get, run following command 
+<pre>
+  go install github.com/rzh/hammer.mongo
+</pre>
+
+hammer.mongo shall be installed into your <i><b>$GOPATH/bin</b></i>, make sure your PATH is properly configured, you can simply issue hammer.mongo to run this. 
+
+# Releases:
+Release are made and binaries for Linux/amd64 and Darwin/amd64 will be part of the binary package, you can get it from
+<pre>
+https://github.com/rzh/hammer.mongo/releases/latest
+</pre>
 
 # How to Build or Run from the source:
 The build.sh will build hammer.mongo for Mac OS and Linux 64, to do it, you have to:

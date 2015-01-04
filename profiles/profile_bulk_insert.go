@@ -5,8 +5,8 @@ import (
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	// "math/rand"
 	"log"
+	"math/rand"
 	"os"
 	"strconv"
 	"sync"
@@ -42,12 +42,12 @@ func (i bulkInsertProfile) SendNext(s *mgo.Session, worker_id int) error {
 
 	var docs []bson.M = make([]bson.M, ht_insert_batch_size)
 
-	// for i := 0; i < ht_insert_batch_size; i++ {
-	for i := 0; i < 10; i++ {
+	for i := 0; i < ht_insert_batch_size; i++ {
 		// doc without _id
 		docs[i] = bson.M{
-			"_id":     _u,
-			"payload": payload_400k,
+			"_id": _u,
+			// "payload": payload_400k,
+			"payload": rand.Int63(),
 		}
 	}
 

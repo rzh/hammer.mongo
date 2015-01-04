@@ -53,12 +53,12 @@ var _insertProfile insertProfile
 // }
 
 func (i insertProfile) SendNext(s *mgo.Session, worker_id int) error {
+	var err error
 	c := s.DB(getDBName(default_db_name_prefix)).C(getCollectionName(default_col_name_prefix))
 
 	_u := atomic.AddInt64(&_insertProfile.UID, 1) // to make this unique
 
-	// err := c.Insert(&Person{Name: 100, UID: bson.ObjectIdHex(fmt.Sprintf("%#x", _u)), Group: 100}) // insert a new record
-	err := c.Insert(bson.M{
+	doc := bson.M{
 		// "_id":      _u,
 		"name":     _u,
 		"group":    rand.Int(),
@@ -68,8 +68,24 @@ func (i insertProfile) SendNext(s *mgo.Session, worker_id int) error {
 		"payload3": &Payload3,
 		"payload4": &Payload4,
 		"payload5": &Payload5,
-		"payload6": &Payload6})
+		"payload6": &Payload6}
 
+	// err := c.Insert(&Person{Name: 100, UID: bson.ObjectIdHex(fmt.Sprintf("%#x", _u)), Group: 100}) // insert a new record
+	if _profile_use_legacy_write {
+
+		err = c.Insert(doc)
+
+	} else {
+		var docs []bson.M = make([]bson.M, 1)
+		var results interface{}
+
+		docs[0] = doc
+
+		err = c.Database.Run(bson.D{{"insert", c.Name},
+			{"documents", docs}}, results)
+	}
+
+	panicOnError(err)
 	panicOnError(err)
 	return err
 }
