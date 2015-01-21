@@ -24,5 +24,20 @@ export HT_USE_LEGACY_WRITE=0
 # server URL
 export HT_SERVER_URL="localhost:27017"
 
-go run ../hammer.mongo.go -profile=INSERT -max -worker $HT_CMD_WORKERS -server $HT_SERVER_URL -monitor $HT_CMD_MONITOR_INTERVAL -total $HT_CMD_TOTAL_OPS -totaltime $HT_CMD_TOTAL_TIME
+# check hammer binary
+PLATFORM='unknown'
+unamestr=`uname`
+if [[ "$unamestr" == 'Linux' ]]; then
+    PLATFORM='linux'
+elif [[ "$unamestr" == 'Darwin' ]]; then
+    PLATFORM='macos'
+fi
+
+BINARY="godd run ../hammer.mongo.go"
+if [ -x "../bin/hammer.$PLATFORM" ]; then
+    echo "Found executable binary"
+    BINARY="../bin/hammer.$PLATFORM" 
+fi
+
+$BINARY -profile=INSERT -max -worker $HT_CMD_WORKERS -server $HT_SERVER_URL -monitor $HT_CMD_MONITOR_INTERVAL -total $HT_CMD_TOTAL_OPS -totaltime $HT_CMD_TOTAL_TIME
 
