@@ -34,10 +34,6 @@ type adhocInsertProfile struct {
 
 var _adhocInsertProfile adhocInsertProfile
 
-// func Int2ObjId(i int64) string {
-// 	// return string represenation of UID
-// }
-
 var simpleArray [20]int
 
 func randomArrayInt(n int) []int {
@@ -55,7 +51,6 @@ func (i adhocInsertProfile) SendNext(s *mgo.Session, worker_id int) error {
 
 	_u := atomic.AddInt64(&_adhocInsertProfile.UID, 1) // to make this unique
 
-	// err := c.Insert(&AdHocPerson{Name: 100, UID: bson.ObjectIdHex(fmt.Sprintf("%#x", _u)), Group: 100}) // insert a new record
 	err := c.Insert(bson.M{
 		"_id":   _u,
 		"name":  randomString(20),

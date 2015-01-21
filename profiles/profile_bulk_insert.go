@@ -3,9 +3,7 @@ package profiles
 import (
 	"fmt"
 
-	"log"
 	"math/rand"
-	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -121,20 +119,4 @@ func init() {
 	registerProfile("BULKINSERT", func() Profile {
 		return Profile(_bulkInsertProfile) // use the same instance
 	})
-
-	s := os.Getenv("HT_INDEX_GROUP")
-	if s == "" {
-		_bulkInsertProfile.indexGroup = false
-	} else {
-		_bulkInsertProfile.indexGroup = true
-	}
-
-	s = os.Getenv("HT_INSERT_NO_ID")
-	if s != "" {
-		log.Println("HT: send without _id")
-		has_id = false
-	} else {
-		log.Println("HT: send with _id")
-		has_id = true
-	}
 }
