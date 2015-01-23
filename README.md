@@ -37,8 +37,21 @@ use the binary
 ./hammer.linux -monitor 1 -server ec2-107-21-153-123.compute-1.amazonaws.com:27017 -thread 4 -max -initdb=false -max=true -profile=insertsmall -worker 8 -total=95000
 </pre>
 
-# Quick Install:
-The fast way to install hammer.mongo is to use go get, run following command 
+# Quick Install Using Released Binaries:
+
+To use pre-build binaries, just do this:
+
+<pre>
+wget --no-check-certificate https://raw.githubusercontent.com/rzh/hammer.mongo/master/scripts/bootstrap.sh -O - | sh
+</pre>
+
+It will download the binaries, and necessary scripts. No need to install Go. Linux/64 and Darwin/64 are support at this moment. Simple run script to run the workload
+
+<pre>
+./simple_insert.sh
+</pre>
+
+You can also use go get to install hammer.mongo, run following command 
 <pre>
   go install github.com/rzh/hammer.mongo
 </pre>
