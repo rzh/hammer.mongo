@@ -106,7 +106,7 @@ func (c *Stats) monitorHammer() {
 	sendps := float64(c.totalSend) / _total_time
 	respps := float64(c.totalResp) / _total_time
 
-	backlog := uint64(c.totalSend - c.totalResp - c.totalErr)
+	// backlog := uint64(c.totalSend - c.totalResp - c.totalErr)
 	log.Println("total", c.totalSend, "resp", c.totalResp)
 
 	avgT := float64(c.totalRespTime) / (float64(c.totalResp) * 1.0e9)
@@ -141,16 +141,16 @@ func (c *Stats) monitorHammer() {
 			" Total send: ", fmt.Sprintf("%4d", c.totalSend),
 			" req/s: ", fmt.Sprintf("%4.1f", sendps),
 			" ack/s: ", fmt.Sprintf("%4.1f", respps),
-			" avg(ms): ", fmt.Sprintf("%2.6f", avgT*1000), // adjust to MS
+			" avg(ms): ", fmt.Sprintf("%2.3f", avgT*1000), // adjust to MS
 			" p99: ", fmt.Sprintf("%2.2f", c.quants.Query(0.99)/1.0e6),
 			" p97: ", fmt.Sprintf("%2.2f", c.quants.Query(0.97)/1.0e6),
 			" p95: ", fmt.Sprintf("%2.2f", c.quants.Query(0.95)/1.0e6),
 			" p50: ", fmt.Sprintf("%2.2f", c.quants.Query(0.50)/1.0e6),
-			" pending: ", backlog,
-			" err: ", c.totalErr,
-			"|", fmt.Sprintf("%2.2f%s", (float64(c.totalErr)*100.0/float64(c.totalErr+c.totalResp)), "%"),
-			" slow: ", fmt.Sprintf("%2.2f%s", (float64(c.totalResSlow)*100.0/float64(c.totalResp)), "%"),
-			" | Last avg(ms): ", fmt.Sprintf("%2.6f", avgLastT*1000),
+			// " pending: ", backlog,
+			//" err: ", c.totalErr,
+			//"|", fmt.Sprintf("%2.2f%s", (float64(c.totalErr)*100.0/float64(c.totalErr+c.totalResp)), "%"),
+			//" slow: ", fmt.Sprintf("%2.2f%s", (float64(c.totalResSlow)*100.0/float64(c.totalResp)), "%"),
+			" | Last avg(ms): ", fmt.Sprintf("%2.3f", avgLastT*1000),
 			" send: ", lastSend,
 			s_print)
 	}
@@ -168,7 +168,7 @@ func (c *Stats) monitorHammer() {
 		",", fmt.Sprintf("%f", c.quants.Query(0.97)/1.0e6),
 		",", fmt.Sprintf("%f", c.quants.Query(0.95)/1.0e6),
 		",", fmt.Sprintf("%f", c.quants.Query(0.50)/1.0e6),
-		",", backlog, // backlog
+		// ",", backlog, // backlog
 		",", c.totalErr, // total error
 		",", fmt.Sprintf("%2.2f", (float64(c.totalErr)*100.0/float64(c.totalErr+c.totalResp))), // error ratio (%)
 		",", c.totalResSlow, // total slow
@@ -238,7 +238,7 @@ func InitProfileStat(h GetProfileCSVHeader, c GetProfileCSV) {
 	_profileCSVHeader = h
 
 	// write header
-	csv_header = fmt.Sprint("timestamp,total send,req/s,ack/s,avg(ms),p99,p97,p95,p50,backlog,total err,err ratio(%),total slow,slow ratio(%),last avg(ms),last sent,") +
+	csv_header = fmt.Sprint("timestamp,total send,req/s,ack/s,avg(ms),p99,p97,p95,p50,total err,err ratio(%),total slow,slow ratio(%),last avg(ms),last sent,") +
 		HammerMongoStats.CsvHeader() + "," + _profileCSVHeader()
 
 	_csv_file.WriteString(csv_header + "\n")

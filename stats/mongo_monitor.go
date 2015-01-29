@@ -253,11 +253,11 @@ func (m *MongoStats) MonitorMongo() (string, string) {
 	m._inited = true
 
 	// check DB stats on
-	return fmt.Sprint(" | ", "Mongo conn: ", result.Connections["current"], " ",
+	return fmt.Sprint(" | ", // "Mongo conn: ", result.Connections["current"], " ",
 			" Mem res(M): ", result.Mem["resident"],
 			" mapped(M): ", result.Mem["mapped"],
 			" PageFault: ", faults,
-			" DB(", _db_name, ") locked: ", fmt.Sprintf("%2.2f%s", lockRatio*100, "%"),
+			//" DB(", _db_name, ") locked: ", fmt.Sprintf("%2.2f%s", lockRatio*100, "%"),
 			" qr: ", result.GlobalLock["currentQueue"]["readers"],
 			" qw: ", result.GlobalLock["currentQueue"]["writers"],
 			" ar: ", result.GlobalLock["activeClients"]["readers"],
