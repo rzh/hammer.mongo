@@ -8,6 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/bmizerany/perks/quantile"
 )
 
 var HammerStats Stats
@@ -38,6 +40,7 @@ const STAT_BATCH_SIZE uint64 = 1 // batch 20 at one time before submit
 
 // Stats will be an atomic, to count the number of request handled
 type Stats struct {
+	quants        *quantile.Stream
 	totalResp     uint64 // total # of request
 	totalRespTime uint64 // total response time
 	totalErr      uint64 // how many error
@@ -73,6 +76,9 @@ func (c *Stats) RecordRes(_time uint64, method string, worker_id int) {
 	if _time > slowThreshold*1000000 {
 		atomic.AddUint64(&c.totalResSlow, 1)
 	}
+
+	// record percentile
+	c.quants.Insert(float64(_time))
 }
 
 func (c *Stats) RecordError(worker_id int) {
@@ -136,6 +142,10 @@ func (c *Stats) monitorHammer() {
 			" req/s: ", fmt.Sprintf("%4.1f", sendps),
 			" ack/s: ", fmt.Sprintf("%4.1f", respps),
 			" avg(ms): ", fmt.Sprintf("%2.6f", avgT*1000), // adjust to MS
+			" p99: ", fmt.Sprintf("%2.2f", c.quants.Query(0.99)/1.0e6),
+			" p97: ", fmt.Sprintf("%2.2f", c.quants.Query(0.97)/1.0e6),
+			" p95: ", fmt.Sprintf("%2.2f", c.quants.Query(0.95)/1.0e6),
+			" p50: ", fmt.Sprintf("%2.2f", c.quants.Query(0.50)/1.0e6),
 			" pending: ", backlog,
 			" err: ", c.totalErr,
 			"|", fmt.Sprintf("%2.2f%s", (float64(c.totalErr)*100.0/float64(c.totalErr+c.totalResp)), "%"),
@@ -154,6 +164,10 @@ func (c *Stats) monitorHammer() {
 		",", fmt.Sprintf("%f", sendps), //req/s:
 		",", fmt.Sprintf("%f", respps), //ack/s
 		",", fmt.Sprintf("%f", avgT*1000), // total avg response time
+		",", fmt.Sprintf("%f", c.quants.Query(0.99)/1.0e6),
+		",", fmt.Sprintf("%f", c.quants.Query(0.97)/1.0e6),
+		",", fmt.Sprintf("%f", c.quants.Query(0.95)/1.0e6),
+		",", fmt.Sprintf("%f", c.quants.Query(0.50)/1.0e6),
 		",", backlog, // backlog
 		",", c.totalErr, // total error
 		",", fmt.Sprintf("%2.2f", (float64(c.totalErr)*100.0/float64(c.totalErr+c.totalResp))), // error ratio (%)
@@ -186,6 +200,9 @@ func (c *Stats) StartMonitoring(monitor_channel *time.Ticker) {
 
 		// this is the routine to pring stats
 		go func() {
+			// init percentile here
+			HammerStats.quants = quantile.NewTargeted(0.50, 0.95, 0.97, 0.99)
+
 			for {
 				<-HammerStats.monitor.C // rate limit for monitor routine
 				if !IN_WARMUP {
@@ -221,7 +238,7 @@ func InitProfileStat(h GetProfileCSVHeader, c GetProfileCSV) {
 	_profileCSVHeader = h
 
 	// write header
-	csv_header = fmt.Sprint("timestamp,total send,req/s,ack/s,avg(ms),backlog,total err,err ratio(%),total slow,slow ratio(%),last avg(ms),last sent,") +
+	csv_header = fmt.Sprint("timestamp,total send,req/s,ack/s,avg(ms),p99,p97,p95,p50,backlog,total err,err ratio(%),total slow,slow ratio(%),last avg(ms),last sent,") +
 		HammerMongoStats.CsvHeader() + "," + _profileCSVHeader()
 
 	_csv_file.WriteString(csv_header + "\n")
