@@ -156,7 +156,12 @@ func (c *Stats) monitorHammer() {
 			"p99\t",
 			"p97\t",
 			"p95\t",
+			"p85\t",
+			"p75\t",
+			"p65\t",
 			"p50\t",
+			"p35\t",
+			"p15\t",
 			// " pending\t", backlog,
 			//" err\t", c.totalErr,
 			//"|", fmt.Sprintf("%2.2f%s", (float64(c.totalErr)*100.0/float64(c.totalErr+c.totalResp)), "%"),
@@ -175,7 +180,12 @@ func (c *Stats) monitorHammer() {
 			fmt.Sprintf("%6.2f\t", c.quants.Query(0.99)/1.0e6),
 			fmt.Sprintf("%6.2f\t", c.quants.Query(0.97)/1.0e6),
 			fmt.Sprintf("%6.2f\t", c.quants.Query(0.95)/1.0e6),
+			fmt.Sprintf("%6.2f\t", c.quants.Query(0.85)/1.0e6),
+			fmt.Sprintf("%6.2f\t", c.quants.Query(0.75)/1.0e6),
+			fmt.Sprintf("%6.2f\t", c.quants.Query(0.65)/1.0e6),
 			fmt.Sprintf("%6.2f\t", c.quants.Query(0.50)/1.0e6),
+			fmt.Sprintf("%6.2f\t", c.quants.Query(0.35)/1.0e6),
+			fmt.Sprintf("%6.2f\t", c.quants.Query(0.15)/1.0e6),
 			fmt.Sprintf("%6.3f\t", avgLastT*1000),
 			fmt.Sprintf("%d\t", lastSend),
 			s_print)
@@ -208,6 +218,9 @@ func (c *Stats) monitorHammer() {
 		",", fmt.Sprintf("%f", c.quants.Query(0.99)/1.0e6),
 		",", fmt.Sprintf("%f", c.quants.Query(0.97)/1.0e6),
 		",", fmt.Sprintf("%f", c.quants.Query(0.95)/1.0e6),
+		",", fmt.Sprintf("%f", c.quants.Query(0.85)/1.0e6),
+		",", fmt.Sprintf("%f", c.quants.Query(0.75)/1.0e6),
+		",", fmt.Sprintf("%f", c.quants.Query(0.65)/1.0e6),
 		",", fmt.Sprintf("%f", c.quants.Query(0.50)/1.0e6),
 		// ",", backlog, // backlog
 		",", c.totalErr, // total error
@@ -242,7 +255,7 @@ func (c *Stats) StartMonitoring(monitor_channel *time.Ticker) {
 		// this is the routine to pring stats
 		go func() {
 			// init percentile here
-			HammerStats.quants = quantile.NewTargeted(0.50, 0.95, 0.97, 0.99)
+			HammerStats.quants = quantile.NewTargeted(0.15, 0.35, 0.50, 0.85, 0.95, 0.97, 0.99)
 
 			for {
 				<-HammerStats.monitor.C // rate limit for monitor routine
@@ -279,7 +292,7 @@ func InitProfileStat(h GetProfileCSVHeader, c GetProfileCSV) {
 	_profileCSVHeader = h
 
 	// write header
-	csv_header = fmt.Sprint("timestamp,total send,req/s,ack/s,avg(ms),p99,p97,p95,p50,total err,err ratio(%),total slow,slow ratio(%),last avg(ms),last sent,") +
+	csv_header = fmt.Sprint("timestamp,total send,req/s,ack/s,avg(ms),p99,p97,p95,p85,p75,p65,p50,total err,err ratio(%),total slow,slow ratio(%),last avg(ms),last sent,") +
 		HammerMongoStats.CsvHeader() + "," + _profileCSVHeader()
 
 	_csv_file.WriteString(csv_header + "\n")
