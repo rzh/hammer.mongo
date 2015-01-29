@@ -1,12 +1,14 @@
 package stats
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"text/tabwriter"
 	"time"
 
 	"github.com/bmizerany/perks/quantile"
@@ -25,6 +27,8 @@ var _profileCSVHeader GetProfileCSVHeader
 
 var csv_header string
 var csv_last_Line string
+
+var printedLineNum int64
 
 var IN_WARMUP bool
 var silent bool
@@ -107,7 +111,7 @@ func (c *Stats) monitorHammer() {
 	respps := float64(c.totalResp) / _total_time
 
 	// backlog := uint64(c.totalSend - c.totalResp - c.totalErr)
-	log.Println("total", c.totalSend, "resp", c.totalResp)
+	// log.Println("total", c.totalSend, "resp", c.totalResp)
 
 	avgT := float64(c.totalRespTime) / (float64(c.totalResp) * 1.0e9)
 	avgLastT := float64(c.totalRespTime-c.lastRespTime) / (float64(c.totalResp-c.lastResp) * 1.0e9)
@@ -129,30 +133,67 @@ func (c *Stats) monitorHammer() {
 	var s_print string
 	var s_csv string
 
-	s_print = "NA"
-	s_csv = "NA"
+	s_print = ""
+	s_print_title := ""
+	s_csv = ""
 	if !_env_no_serverStatus {
 		s_print, s_csv = HammerMongoStats.MonitorMongo()
 	}
 
 	if !silent {
-		fmt.Println(
-			time.Now().Format(time.Stamp),
-			" Total send: ", fmt.Sprintf("%4d", c.totalSend),
-			" req/s: ", fmt.Sprintf("%4.1f", sendps),
-			" ack/s: ", fmt.Sprintf("%4.1f", respps),
-			" avg(ms): ", fmt.Sprintf("%2.3f", avgT*1000), // adjust to MS
-			" p99: ", fmt.Sprintf("%2.2f", c.quants.Query(0.99)/1.0e6),
-			" p97: ", fmt.Sprintf("%2.2f", c.quants.Query(0.97)/1.0e6),
-			" p95: ", fmt.Sprintf("%2.2f", c.quants.Query(0.95)/1.0e6),
-			" p50: ", fmt.Sprintf("%2.2f", c.quants.Query(0.50)/1.0e6),
-			// " pending: ", backlog,
-			//" err: ", c.totalErr,
+		var tabWriter *tabwriter.Writer
+		var tabBuffer bytes.Buffer
+		tabWriter = new(tabwriter.Writer)
+		tabWriter.Init(&tabBuffer, 5, 0, 1, ' ', tabwriter.AlignRight)
+
+		// print title
+		fmt.Fprintln(tabWriter,
+			"time \t",
+			"Total send\t",
+			"req/s\t",
+			"ack/s\t",
+			"avg(ms)\t",
+			"p99\t",
+			"p97\t",
+			"p95\t",
+			"p50\t",
+			// " pending\t", backlog,
+			//" err\t", c.totalErr,
 			//"|", fmt.Sprintf("%2.2f%s", (float64(c.totalErr)*100.0/float64(c.totalErr+c.totalResp)), "%"),
-			//" slow: ", fmt.Sprintf("%2.2f%s", (float64(c.totalResSlow)*100.0/float64(c.totalResp)), "%"),
-			" | Last avg(ms): ", fmt.Sprintf("%2.3f", avgLastT*1000),
-			" send: ", lastSend,
+			//" slow\t", fmt.Sprintf("%2.2f%s", (float64(c.totalResSlow)*100.0/float64(c.totalResp)), "%"),
+			"Last avg(ms)\t",
+			"Last send\t",
+			s_print_title)
+
+		// print data
+		fmt.Fprintln(tabWriter,
+			time.Now().Format(time.Stamp), "\t",
+			fmt.Sprintf("%4d\t", c.totalSend),
+			fmt.Sprintf("%4.1f\t", sendps),
+			fmt.Sprintf("%4.1f\t", respps),
+			fmt.Sprintf("%6.3f\t", avgT*1000), // adjust to MS
+			fmt.Sprintf("%6.2f\t", c.quants.Query(0.99)/1.0e6),
+			fmt.Sprintf("%6.2f\t", c.quants.Query(0.97)/1.0e6),
+			fmt.Sprintf("%6.2f\t", c.quants.Query(0.95)/1.0e6),
+			fmt.Sprintf("%6.2f\t", c.quants.Query(0.50)/1.0e6),
+			fmt.Sprintf("%6.3f\t", avgLastT*1000),
+			fmt.Sprintf("%d\t", lastSend),
 			s_print)
+
+		tabWriter.Flush()
+		if printedLineNum == 0 {
+			fmt.Println()
+			fmt.Println(string(bytes.Split(tabBuffer.Bytes(), []byte{byte('\n')})[0]))
+		}
+		fmt.Println(string(bytes.Split(tabBuffer.Bytes(), []byte{byte('\n')})[1]))
+
+		printedLineNum = printedLineNum + 1
+
+		if printedLineNum == 5 {
+			printedLineNum = 0
+		}
+
+		//WriteTo(os.Stdout)
 	}
 
 	// shall monitor Mongo Here to make sure display is consistant
@@ -264,6 +305,7 @@ func GetRunId() string {
 func init() {
 	_env_no_serverStatus = true
 	slowThreshold = 2000 // in ms
+
 	// fmt.Println("Init Stats")
 
 	s := os.Getenv("HT_MONGOD_MONITOR")
