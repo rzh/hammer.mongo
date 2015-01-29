@@ -60,8 +60,8 @@ const alpha_numeric_chars_with_space_len = len(alpha_numeric_chars_with_space)
 const alpha_numeric_chars_len = len(alpha_numeric_chars)
 const all_chars_len = len(all_chars)
 
-const default_db_name_prefix = "htest"
-const default_col_name_prefix = "htest"
+const default_db_name_prefix = "sbtest"
+const default_col_name_prefix = "sbtest"
 
 var _currentProfile Profile // to hold what is the current profile
 
@@ -153,7 +153,7 @@ func init() {
 
 func getDBName(prefix string) string {
 	if _multi_db == 1 {
-		return fmt.Sprint(prefix, 1)
+		return fmt.Sprint(prefix)
 	} else {
 		return fmt.Sprint(prefix, rand.Intn(_multi_db)+1)
 	}
@@ -161,7 +161,7 @@ func getDBName(prefix string) string {
 
 func getCollectionName(prefix string) string {
 	if _multi_col == 1 {
-		return fmt.Sprint(prefix, 1)
+		return fmt.Sprint(prefix)
 	} else {
 		return fmt.Sprint(prefix, rand.Intn(_multi_col)+1)
 	}

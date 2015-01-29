@@ -65,6 +65,7 @@ type Stats struct {
 	C_response chan uint64
 	C_send     chan uint64
 	once       sync.Once
+	mu         sync.Mutex
 }
 
 // increase the count and record response time.
@@ -82,7 +83,9 @@ func (c *Stats) RecordRes(_time uint64, method string, worker_id int) {
 	}
 
 	// record percentile
+	c.mu.Lock()
 	c.quants.Insert(float64(_time))
+	c.mu.Unlock()
 }
 
 func (c *Stats) RecordError(worker_id int) {
@@ -140,6 +143,19 @@ func (c *Stats) monitorHammer() {
 		s_print, s_csv = HammerMongoStats.MonitorMongo()
 	}
 
+	/*c.mu.Lock()
+	p99 := c.quants.Query(0.99)
+	p97 := c.quants.Query(0.97)
+	p95 := c.quants.Query(0.95)
+	p85 := c.quants.Query(0.85)
+	p75 := c.quants.Query(0.75)
+	p65 := c.quants.Query(0.65)
+	p50 := c.quants.Query(0.50)
+	p35 := c.quants.Query(0.35)
+	p15 := c.quants.Query(0.15)
+	c.mu.Unlock()
+	*/
+
 	if !silent {
 		var tabWriter *tabwriter.Writer
 		var tabBuffer bytes.Buffer
@@ -153,15 +169,15 @@ func (c *Stats) monitorHammer() {
 			"req/s\t",
 			"ack/s\t",
 			"avg(ms)\t",
-			"p99\t",
-			"p97\t",
-			"p95\t",
-			"p85\t",
-			"p75\t",
-			"p65\t",
-			"p50\t",
-			"p35\t",
-			"p15\t",
+			//"p99\t",
+			//"p97\t",
+			//"p95\t",
+			//"p85\t",
+			//"p75\t",
+			//"p65\t",
+			//"p50\t",
+			//"p35\t",
+			//"p15\t",
 			// " pending\t", backlog,
 			//" err\t", c.totalErr,
 			//"|", fmt.Sprintf("%2.2f%s", (float64(c.totalErr)*100.0/float64(c.totalErr+c.totalResp)), "%"),
@@ -177,15 +193,15 @@ func (c *Stats) monitorHammer() {
 			fmt.Sprintf("%4.1f\t", sendps),
 			fmt.Sprintf("%4.1f\t", respps),
 			fmt.Sprintf("%6.3f\t", avgT*1000), // adjust to MS
-			fmt.Sprintf("%6.2f\t", c.quants.Query(0.99)/1.0e6),
-			fmt.Sprintf("%6.2f\t", c.quants.Query(0.97)/1.0e6),
-			fmt.Sprintf("%6.2f\t", c.quants.Query(0.95)/1.0e6),
-			fmt.Sprintf("%6.2f\t", c.quants.Query(0.85)/1.0e6),
-			fmt.Sprintf("%6.2f\t", c.quants.Query(0.75)/1.0e6),
-			fmt.Sprintf("%6.2f\t", c.quants.Query(0.65)/1.0e6),
-			fmt.Sprintf("%6.2f\t", c.quants.Query(0.50)/1.0e6),
-			fmt.Sprintf("%6.2f\t", c.quants.Query(0.35)/1.0e6),
-			fmt.Sprintf("%6.2f\t", c.quants.Query(0.15)/1.0e6),
+			//fmt.Sprintf("%6.2f\t", p99/1.0e6),
+			//fmt.Sprintf("%6.2f\t", p97/1.0e6),
+			//fmt.Sprintf("%6.2f\t", p95/1.0e6),
+			//fmt.Sprintf("%6.2f\t", p85/1.0e6),
+			//fmt.Sprintf("%6.2f\t", p75/1.0e6),
+			//fmt.Sprintf("%6.2f\t", p65/1.0e6),
+			//fmt.Sprintf("%6.2f\t", p50/1.0e6),
+			//fmt.Sprintf("%6.2f\t", p35/1.0e6),
+			//fmt.Sprintf("%6.2f\t", p15/1.0e6),
 			fmt.Sprintf("%6.3f\t", avgLastT*1000),
 			fmt.Sprintf("%d\t", lastSend),
 			s_print)
@@ -215,13 +231,13 @@ func (c *Stats) monitorHammer() {
 		",", fmt.Sprintf("%f", sendps), //req/s:
 		",", fmt.Sprintf("%f", respps), //ack/s
 		",", fmt.Sprintf("%f", avgT*1000), // total avg response time
-		",", fmt.Sprintf("%f", c.quants.Query(0.99)/1.0e6),
-		",", fmt.Sprintf("%f", c.quants.Query(0.97)/1.0e6),
-		",", fmt.Sprintf("%f", c.quants.Query(0.95)/1.0e6),
-		",", fmt.Sprintf("%f", c.quants.Query(0.85)/1.0e6),
-		",", fmt.Sprintf("%f", c.quants.Query(0.75)/1.0e6),
-		",", fmt.Sprintf("%f", c.quants.Query(0.65)/1.0e6),
-		",", fmt.Sprintf("%f", c.quants.Query(0.50)/1.0e6),
+		//",", fmt.Sprintf("%f", p99/1.0e6),
+		//",", fmt.Sprintf("%f", p97/1.0e6),
+		//",", fmt.Sprintf("%f", p95/1.0e6),
+		//",", fmt.Sprintf("%f", p85/1.0e6),
+		//",", fmt.Sprintf("%f", p75/1.0e6),
+		//",", fmt.Sprintf("%f", p65/1.0e6),
+		//",", fmt.Sprintf("%f", p50/1.0e6),
 		// ",", backlog, // backlog
 		",", c.totalErr, // total error
 		",", fmt.Sprintf("%2.2f", (float64(c.totalErr)*100.0/float64(c.totalErr+c.totalResp))), // error ratio (%)
@@ -244,6 +260,15 @@ func PrettyPrint() {
 	for index, _ := range l {
 		fmt.Printf("%40s : %s\n", h[index], l[index])
 	}
+	fmt.Printf("%40s : %6.2f\n", "p99", HammerStats.quants.Query(0.99))
+	fmt.Printf("%40s : %6.2f\n", "p97", HammerStats.quants.Query(0.97))
+	fmt.Printf("%40s : %6.2f\n", "p95", HammerStats.quants.Query(0.95))
+	fmt.Printf("%40s : %6.2f\n", "p85", HammerStats.quants.Query(0.85))
+	fmt.Printf("%40s : %6.2f\n", "p75", HammerStats.quants.Query(0.75))
+	fmt.Printf("%40s : %6.2f\n", "p65", HammerStats.quants.Query(0.65))
+	fmt.Printf("%40s : %6.2f\n", "p50", HammerStats.quants.Query(0.50))
+	fmt.Printf("%40s : %6.2f\n", "p35", HammerStats.quants.Query(0.35))
+	fmt.Printf("%40s : %6.2f\n", "p15", HammerStats.quants.Query(0.15))
 }
 
 func (c *Stats) StartMonitoring(monitor_channel *time.Ticker) {

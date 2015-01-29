@@ -4,6 +4,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -96,22 +97,23 @@ func InitSimpleTest(session *mgo.Session, _initdb bool) {
 	if _initdb {
 		log.Println(". Init DB, drop collections")
 		session.DB(_db_name).C("people").DropCollection()
-
 		// may drop DB here as well TODO:
 	} // this will be moved to each profile. FIXME:
 
-	// follow should be moved into SetupTest
-	collection := session.DB(_db_name).C("people")
+	for i := 1; i < _multi_db; i++ {
+		for j := 1; j < _multi_col; j++ {
+			collection := session.DB(default_db_name_prefix + strconv.Itoa(i)).C(default_col_name_prefix + strconv.Itoa(j))
+			err := collection.EnsureIndexKey("name")
+			if err != nil {
+				panic(err)
+			}
 
-	err := collection.EnsureIndexKey("name")
-	if err != nil {
-		panic(err)
-	}
-
-	// err = collection.EnsureIndexKey("group")
-	err = collection.EnsureIndexKey("uid")
-	if err != nil {
-		panic(err)
+			// err = collection.EnsureIndexKey("group")
+			err = collection.EnsureIndexKey("uid")
+			if err != nil {
+				panic(err)
+			}
+		}
 	}
 }
 
