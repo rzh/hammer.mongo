@@ -262,13 +262,13 @@ func GetRunId() string {
 }
 
 func init() {
-	_env_no_serverStatus = false
+	_env_no_serverStatus = true
 	slowThreshold = 2000 // in ms
 	// fmt.Println("Init Stats")
 
-	s := os.Getenv("HT_NO_MONGOD_MONITOR")
+	s := os.Getenv("HT_MONGOD_MONITOR")
 	if s != "" {
-		_env_no_serverStatus = true
+		_env_no_serverStatus = false
 	}
 
 	// init channel here
