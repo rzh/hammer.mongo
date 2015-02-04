@@ -33,6 +33,7 @@ var printedLineNum int64
 var IN_WARMUP bool
 var silent bool
 var runId string
+var showPercentile bool = false
 var _num_of_workers int
 
 var _env_no_serverStatus bool
@@ -83,9 +84,9 @@ func (c *Stats) RecordRes(_time uint64, method string, worker_id int) {
 	}
 
 	// record percentile
-	c.mu.Lock()
-	c.quants.Insert(float64(_time))
-	c.mu.Unlock()
+	//c.mu.Lock()
+	//c.quants.Insert(float64(_time))
+	//c.mu.Unlock()
 }
 
 func (c *Stats) RecordError(worker_id int) {
@@ -258,17 +259,21 @@ func PrettyPrint() {
 	l := strings.Split(csv_last_Line, ",")
 
 	for index, _ := range l {
-		fmt.Printf("%40s : %s\n", h[index], l[index])
+		if h[index] != "NA" && h[index] != "" {
+			fmt.Printf("%40s : %s\n", h[index], l[index])
+		}
 	}
-	fmt.Printf("%40s : %6.2f\n", "p99", HammerStats.quants.Query(0.99))
-	fmt.Printf("%40s : %6.2f\n", "p97", HammerStats.quants.Query(0.97))
-	fmt.Printf("%40s : %6.2f\n", "p95", HammerStats.quants.Query(0.95))
-	fmt.Printf("%40s : %6.2f\n", "p85", HammerStats.quants.Query(0.85))
-	fmt.Printf("%40s : %6.2f\n", "p75", HammerStats.quants.Query(0.75))
-	fmt.Printf("%40s : %6.2f\n", "p65", HammerStats.quants.Query(0.65))
-	fmt.Printf("%40s : %6.2f\n", "p50", HammerStats.quants.Query(0.50))
-	fmt.Printf("%40s : %6.2f\n", "p35", HammerStats.quants.Query(0.35))
-	fmt.Printf("%40s : %6.2f\n", "p15", HammerStats.quants.Query(0.15))
+	/*
+		fmt.Printf("%40s : %6.2f\n", "p99", HammerStats.quants.Query(0.99))
+		fmt.Printf("%40s : %6.2f\n", "p97", HammerStats.quants.Query(0.97))
+		fmt.Printf("%40s : %6.2f\n", "p95", HammerStats.quants.Query(0.95))
+		fmt.Printf("%40s : %6.2f\n", "p85", HammerStats.quants.Query(0.85))
+		fmt.Printf("%40s : %6.2f\n", "p75", HammerStats.quants.Query(0.75))
+		fmt.Printf("%40s : %6.2f\n", "p65", HammerStats.quants.Query(0.65))
+		fmt.Printf("%40s : %6.2f\n", "p50", HammerStats.quants.Query(0.50))
+		fmt.Printf("%40s : %6.2f\n", "p35", HammerStats.quants.Query(0.35))
+		fmt.Printf("%40s : %6.2f\n", "p15", HammerStats.quants.Query(0.15))
+	*/
 }
 
 func (c *Stats) StartMonitoring(monitor_channel *time.Ticker) {
@@ -280,7 +285,6 @@ func (c *Stats) StartMonitoring(monitor_channel *time.Ticker) {
 		// this is the routine to pring stats
 		go func() {
 			// init percentile here
-			HammerStats.quants = quantile.NewTargeted(0.15, 0.35, 0.50, 0.85, 0.95, 0.97, 0.99)
 
 			for {
 				<-HammerStats.monitor.C // rate limit for monitor routine
@@ -317,8 +321,13 @@ func InitProfileStat(h GetProfileCSVHeader, c GetProfileCSV) {
 	_profileCSVHeader = h
 
 	// write header
-	csv_header = fmt.Sprint("timestamp,total send,req/s,ack/s,avg(ms),p99,p97,p95,p85,p75,p65,p50,total err,err ratio(%),total slow,slow ratio(%),last avg(ms),last sent,") +
-		HammerMongoStats.CsvHeader() + "," + _profileCSVHeader()
+	if showPercentile {
+		csv_header = fmt.Sprint("timestamp,total send,req/s,ack/s,avg(ms),p99,p97,p95,p85,p75,p65,p50,total err,err ratio(%),total slow,slow ratio(%),last avg(ms),last sent,") +
+			HammerMongoStats.CsvHeader() + "," + _profileCSVHeader()
+	} else {
+		csv_header = fmt.Sprint("timestamp,total send,req/s,ack/s,avg(ms),total err,err ratio(%),total slow,slow ratio(%),last avg(ms),last sent,") +
+			HammerMongoStats.CsvHeader() + "," + _profileCSVHeader()
+	}
 
 	_csv_file.WriteString(csv_header + "\n")
 }
@@ -354,6 +363,7 @@ func init() {
 	// init channel here
 	HammerStats.C_send = make(chan uint64, 1000)     // need optimze this buffer size
 	HammerStats.C_response = make(chan uint64, 1000) // need optimze this buffer size
+	HammerStats.quants = quantile.NewTargeted(0.15, 0.35, 0.50, 0.85, 0.95, 0.97, 0.99)
 
 	// gorouting to collect send
 	go func() {
