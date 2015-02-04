@@ -1,7 +1,7 @@
 #!env bash
 
 VERSION="v0.1.3"
-SCRIPTS=(bulk_insert.bash simple_insert.sh config.sh)
+SCRIPTS=(bulk_insert.bash simple_insert.sh config.sh contended_update.sh)
 echo "bootstrap hammer.time"
 
 if [ -f hammer.tar.gz ]; then
