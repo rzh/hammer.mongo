@@ -2,9 +2,7 @@ package profiles
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -37,7 +35,7 @@ func (i query_single_doc_Profile) SendNext(s *mgo.Session, worker_id int) error 
 		fmt.Println("Total doc", n)
 	}
 
-	_u := rand.Int63n(_query_single_doc_Profile.MaxUID) // to find a random person
+	_u := rands[worker_id].Int63n(_query_single_doc_Profile.MaxUID) // to find a random person
 	_p := SmallDoc{}
 
 	var err error
@@ -70,7 +68,6 @@ func (i query_single_doc_Profile) CsvHeader() string {
 
 func init() {
 	_query_single_doc_Profile.MaxUID = 0
-	rand.Seed(time.Now().UnixNano())
 
 	_profile_name := "singleQuery"
 	// fmt.Println("Init ", _profile_name, "  profile")

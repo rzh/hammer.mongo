@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/rzh/hammer.mongo/stats"
 	"gopkg.in/mgo.v2"
@@ -20,6 +21,16 @@ type Profile interface {
 	SetupTest(s *mgo.Session, _initdb bool) error
 	CsvString(total_time float64) string
 	CsvHeader() string
+}
+
+var rands []*rand.Rand
+
+func InitProfile(_num_of_workers int) {
+	rands = make([]*rand.Rand, _num_of_workers, _num_of_workers)
+
+	for i := 0; i < _num_of_workers; i++ {
+		rands[i] = rand.New(rand.NewSource(int64(time.Now().Nanosecond() + i)))
+	}
 }
 
 type ProfileFinalFunc interface {
@@ -43,7 +54,7 @@ func CallFinalFunc(c *mgo.Session) {
 type getNextFunc func() Profile // to return a profile
 type ProfilePointer *Profile
 
-type operationFunc func(c *mgo.Collection, max_id int) error
+type operationFunc func(c *mgo.Collection, max_id int, worker_id int) error
 
 var _profiles map[string]getNextFunc
 var _logFile *os.File

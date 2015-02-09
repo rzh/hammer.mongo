@@ -1,11 +1,6 @@
 package profiles
 
-import (
-	"math/rand"
-	"time"
-
-	"gopkg.in/mgo.v2"
-)
+import "gopkg.in/mgo.v2"
 
 /*
   basic insert only profile, insert a doc of 400 bytes
@@ -21,7 +16,7 @@ func (i mixed_Profile) SendNext(s *mgo.Session, worker_id int) error {
 
 	var err error
 
-	r := rand.Int63n(3)
+	r := rands[worker_id].Int63n(3)
 	if r == 0 {
 		err = _query_single_doc_Profile.SendNext(s, worker_id)
 	} else if r == 1 {
@@ -55,8 +50,6 @@ func (i mixed_Profile) CsvHeader() string {
 }
 
 func init() {
-	rand.Seed(time.Now().UnixNano())
-
 	_profile_name := "mixed"
 	// fmt.Println("Init ", _profile_name, "  profile")
 

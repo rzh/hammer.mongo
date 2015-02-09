@@ -3,7 +3,6 @@ package profiles
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"reflect"
 	"runtime"
 	"strings"
@@ -103,9 +102,9 @@ func (sb adhocProfile) SendNext(s *mgo.Session, worker_id int) error {
 		err = nil
 		for j := 0; j < OP_Ops[i].NumOps; j++ {
 			if err == nil {
-				err = OP_Ops[i].f(c, _adhocProfile.MaxUID)
+				err = OP_Ops[i].f(c, _adhocProfile.MaxUID, worker_id)
 			} else {
-				OP_Ops[i].f(c, _adhocProfile.MaxUID)
+				OP_Ops[i].f(c, _adhocProfile.MaxUID, worker_id)
 			}
 		}
 		if err == nil && int64(OP_Ops[i].NumOps) > 0 {
@@ -166,8 +165,6 @@ func init() {
 	_adhocProfile.UID = 0
 	_adhocProfile.MaxUID = -1
 	Run_TOKU_Test = false
-
-	rand.Seed(time.Now().UnixNano())
 
 	OP_Ops[OP_POINT_SELECTS].f = findOneBy_id_project
 	OP_Ops[OP_POINT_SELECTS_AGG].f = findOneBy_id_project_with_agg

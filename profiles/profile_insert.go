@@ -2,7 +2,6 @@ package profiles
 
 import (
 	"log"
-	"math/rand"
 	"os"
 	"strconv"
 	"sync"
@@ -62,7 +61,7 @@ func (i insertProfile) SendNext(s *mgo.Session, worker_id int) error {
 	doc := bson.M{
 		// "_id":      _u,
 		"name":     _u,
-		"group":    rand.Int(),
+		"group":    rands[worker_id].Int(),
 		"payload":  &Payload,
 		"payload1": &Payload1,
 		"payload2": &Payload2,

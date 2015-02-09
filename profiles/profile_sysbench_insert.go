@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -36,13 +35,13 @@ const numeric_chars = "0123456789"
 
 var sb_array_buffer [_sb_array_size]int
 
-func createRandPad() string {
+func createRandPad(worker_id int) string {
 	// format "###########-###########-###########-###########-###########"
 
 	x := make([]byte, 59)
 
 	for i := 0; i < 59; i++ {
-		x[i] = byte(numeric_chars[rand.Intn(10)])
+		x[i] = byte(numeric_chars[rands[worker_id].Intn(10)])
 	}
 
 	x[11] = '-'
@@ -53,13 +52,13 @@ func createRandPad() string {
 	return string(x)
 }
 
-func createRandC() string {
+func createRandC(worker_id int) string {
 	// format "###########-###########-###########-###########-###########-###########-###########-###########-###########-###########"
 
 	x := make([]byte, 119)
 
 	for i := 0; i < 119; i++ {
-		x[i] = byte(numeric_chars[rand.Intn(10)])
+		x[i] = byte(numeric_chars[rands[worker_id].Intn(10)])
 	}
 
 	x[11] = '-'
@@ -90,9 +89,9 @@ func (i sbInsertProfile) SendNext(s *mgo.Session, worker_id int) error {
 	for i := 0; i < _sb_batch_insert_size; i++ {
 		docs[i] = bson.M{
 			"_id":   (_u - _sb_batch_insert_size + int64(i)),
-			"k":     rand.Intn(10000000),
-			"c":     createRandC(),
-			"pad":   createRandPad(),
+			"k":     rands[worker_id].Intn(10000000),
+			"c":     createRandC(worker_id),
+			"pad":   createRandPad(worker_id),
 			"array": sb_array_buffer}
 	}
 
@@ -140,11 +139,10 @@ func (i sbInsertProfile) CsvHeader() string {
 
 func init() {
 	_sbInsertProfile.UID = 0
-	rand.Seed(time.Now().UnixNano())
 
 	// init array buffer
 	for i := 0; i < _sb_array_size; i++ {
-		sb_array_buffer[i] = rand.Int()
+		sb_array_buffer[i] = rand.Int() // init, ok to use common rand
 	}
 
 	registerProfile("SB_INSERT", func() Profile {

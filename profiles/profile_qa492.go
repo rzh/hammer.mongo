@@ -7,7 +7,6 @@ package profiles
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/rzh/hammer.mongo/stats"
 	"log"
 	"math"
 	"math/rand"
@@ -15,6 +14,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/rzh/hammer.mongo/stats"
 
 	"code.google.com/p/gcfg"
 	"gopkg.in/mgo.v2"
@@ -170,62 +171,62 @@ type QA492Distribution struct {
 	- avoid return large chunk of data, such as for Payload
 */
 
-func (c *qa492Profile) normalInRange(drange int64) int64 {
+func (c *qa492Profile) normalInRange(drange int64, worker_id int) int64 {
 	i := int64(-1)
 
 	for i < 0 || i >= drange {
-		i = int64((rand.NormFloat64()*_qa492Profile.normalDistributionStdDev + 0.5) * float64(drange))
+		i = int64((rands[worker_id].NormFloat64()*_qa492Profile.normalDistributionStdDev + 0.5) * float64(drange))
 	}
 	return i
 }
 
-func (c *qa492Profile) getTags(n int) []string {
+func (c *qa492Profile) getTags(n int, worker_id int) []string {
 	buffer := make([]string, n)
 
 	for i := 0; i < n; i++ {
-		buffer[i] = _qa492Profile.tagNames[rand.Intn(len(_qa492Profile.tagNames))]
+		buffer[i] = _qa492Profile.tagNames[rands[worker_id].Intn(len(_qa492Profile.tagNames))]
 	}
 
 	return buffer
 }
 
-func (c *qa492Profile) getStream() string {
+func (c *qa492Profile) getStream(worker_id int) string {
 	if _qa492Profile.distribution == uniformDistribution {
-		return _qa492Profile.streamNames[rand.Intn(len(c.streamNames))]
+		return _qa492Profile.streamNames[rands[worker_id].Intn(len(c.streamNames))]
 	} else if _qa492Profile.distribution == normalDistribution {
-		return _qa492Profile.streamNames[c.normalInRange(int64(_qa492Profile.streamNames_len))]
+		return _qa492Profile.streamNames[c.normalInRange(int64(_qa492Profile.streamNames_len), worker_id)]
 	} else {
 		log.Panicln("unknown random distribution ", c.distribution)
 	}
 	return "" // shall never be here
 }
 
-func (c *qa492Profile) getPosition() int {
-	return rand.Intn(1000) // max position to 1000 since there is no requirement for this
+func (c *qa492Profile) getPosition(worker_id int) int {
+	return rands[worker_id].Intn(1000) // max position to 1000 since there is no requirement for this
 }
 
-func (c *qa492Profile) getPayloadSize() int {
-	r := int(rand.NormFloat64()*200 + 500)
+func (c *qa492Profile) getPayloadSize(worker_id int) int {
+	r := int(rands[worker_id].NormFloat64()*200 + 500)
 
 	if r < 0 {
-		r = 250 + rand.Intn(500)
+		r = 250 + rands[worker_id].Intn(500)
 	} else if r > len(c.payloadBuffer) {
-		r = 250 + rand.Intn(500) // FIXME:
+		r = 250 + rands[worker_id].Intn(500) // FIXME:
 	}
 
 	return r // no more than 10k
 }
 
-func (c *qa492Profile) getTimeStamp() time.Time {
-	return time.Now().Add((-1) * time.Duration(rand.Int63n(_qa492Profile.dateBacktrack)) * time.Minute) // distribute to the last 30 days
+func (c *qa492Profile) getTimeStamp(worker_id int) time.Time {
+	return time.Now().Add((-1) * time.Duration(rands[worker_id].Int63n(_qa492Profile.dateBacktrack)) * time.Minute) // distribute to the last 30 days
 }
 
-func (c *qa492Profile) getUser() int64 {
+func (c *qa492Profile) getUser(worker_id int) int64 {
 
 	if _qa492Profile.distribution == uniformDistribution {
-		return rand.Int63n(int64(c.cfg.Profile.UIDRange))
+		return rands[worker_id].Int63n(int64(c.cfg.Profile.UIDRange))
 	} else if _qa492Profile.distribution == normalDistribution {
-		return c.normalInRange(int64(c.cfg.Profile.UIDRange))
+		return c.normalInRange(int64(c.cfg.Profile.UIDRange), worker_id)
 	} else {
 		log.Panicln("unknown random distribution ", c.distribution)
 	}
@@ -241,7 +242,7 @@ func (c *qa492Profile) getUID() bson.ObjectId {
 
 func (c *qa492Profile) randomPayloadBuffer() {
 	for i := 0; i < len(c.payloadBuffer); i++ {
-		_qa492Profile.payloadBuffer[i] = byte(all_chars[rand.Intn(len(all_chars))])
+		_qa492Profile.payloadBuffer[i] = byte(all_chars[rand.Intn(len(all_chars))]) // Ok to use command rand
 	}
 }
 
@@ -254,7 +255,7 @@ func (c *qa492Profile) initStreamNames() {
 
 func (c *qa492Profile) initTagNames() {
 	for i := 0; i < len(c.tagNames); i++ {
-		_qa492Profile.tagNames[i] = randomString(1 + rand.Intn(99)) // from 1 to 100
+		_qa492Profile.tagNames[i] = randomString(1 + rand.Intn(99)) // from 1 to 100, Ok to use command rand
 	}
 }
 
@@ -303,17 +304,17 @@ func (pp *qa492Profile) addNewDoc(collection *mgo.Collection, _log bool, worker_
 
 	_in_warmup := stats.IN_WARMUP
 
-	payload_size := _qa492Profile.getPayloadSize()
-	payload_start := rand.Intn(_qa492Profile.payloadBuffer_len - payload_size - 1)
+	payload_size := _qa492Profile.getPayloadSize(worker_id)
+	payload_start := rands[worker_id].Intn(_qa492Profile.payloadBuffer_len - payload_size - 1)
 
 	err := collection.Insert(&QA492_Event{
 		// ID:        c.getUID(),
-		User:      c.getUser(),
-		Tags:      c.getTags(rand.Intn(15)),
-		Stream:    c.getStream(),
-		Position:  c.getPosition(), // integ
+		User:      c.getUser(worker_id),
+		Tags:      c.getTags(rands[worker_id].Intn(15), worker_id),
+		Stream:    c.getStream(worker_id),
+		Position:  c.getPosition(worker_id), // integ
 		Payload:   string(c.payloadBuffer[payload_start : payload_start+payload_size]),
-		Timestamp: c.getTimeStamp(),
+		Timestamp: c.getTimeStamp(worker_id),
 	}) // whether to use a cache object to speed up, not sure which works better. TODO:
 
 	if _log && !_in_warmup {
@@ -336,7 +337,7 @@ func (pp *qa492Profile) findByStreamName(collection *mgo.Collection, worker_id i
 	c := &_qa492Profile
 
 	t := time.Now()
-	q := queryMongo(collection, bson.M{"stream": c.getStream()}, c.queryLimit, c.BatchSize)
+	q := queryMongo(collection, bson.M{"stream": c.getStream(worker_id)}, c.queryLimit, c.BatchSize)
 	err := c.iterateAllDoc(q, 0, "findByStreamName")
 	d := time.Since(t).Nanoseconds()
 
@@ -357,8 +358,8 @@ func (pp *qa492Profile) findBy_stream_and_user(collection *mgo.Collection, worke
 	c := &_qa492Profile
 
 	result := bson.M{}
-	s1 := c.getStream()
-	u1 := c.getUser()
+	s1 := c.getStream(worker_id)
+	u1 := c.getUser(worker_id)
 
 	t := time.Now()
 	if c.cfg.Profile.FindByStreamAndUserHint {
@@ -394,7 +395,7 @@ func (pp *qa492Profile) findByTag(collection *mgo.Collection, worker_id int) err
 	c := &_qa492Profile
 
 	t := time.Now()
-	q := queryMongo(collection, bson.M{"tags": bson.M{"$in": c.getTags(1)}}, c.queryLimit, c.BatchSize)
+	q := queryMongo(collection, bson.M{"tags": bson.M{"$in": c.getTags(1, worker_id)}}, c.queryLimit, c.BatchSize)
 	err := c.iterateAllDoc(q, 0, "findByTag")
 	d := time.Since(t).Nanoseconds()
 
@@ -415,9 +416,9 @@ func (pp *qa492Profile) findBy_tag_and_user(collection *mgo.Collection, worker_i
 
 	t := time.Now()
 	if c.cfg.Profile.FindByTagAndUserHint {
-		q = queryMongo(collection, bson.M{"tags": bson.M{"$in": c.getTags(1)}, "user": c.getUser()}, c.queryLimit, c.BatchSize).Hint("tags")
+		q = queryMongo(collection, bson.M{"tags": bson.M{"$in": c.getTags(1, worker_id)}, "user": c.getUser(worker_id)}, c.queryLimit, c.BatchSize).Hint("tags")
 	} else {
-		q = queryMongo(collection, bson.M{"tags": bson.M{"$in": c.getTags(1)}, "user": c.getUser()}, c.queryLimit, c.BatchSize)
+		q = queryMongo(collection, bson.M{"tags": bson.M{"$in": c.getTags(1, worker_id)}, "user": c.getUser(worker_id)}, c.queryLimit, c.BatchSize)
 	}
 	err := q.Explain(result)
 	q.Count()
@@ -439,10 +440,10 @@ func (pp *qa492Profile) findByDateRange(collection *mgo.Collection, worker_id in
 	c := &_qa492Profile
 
 	// query start time is at least two days ago, to give enough range to query
-	_start_time := time.Now().Add((-1) * time.Duration(rand.Int63n(_dataBacktrack-2880)) * time.Minute)
+	_start_time := time.Now().Add((-1) * time.Duration(rands[worker_id].Int63n(_dataBacktrack-2880)) * time.Minute)
 
 	// query end time is at least 100 min, up to two days
-	_end_time := _start_time.Add(time.Duration(rand.Int63n(2780)+100) * time.Minute)
+	_end_time := _start_time.Add(time.Duration(rands[worker_id].Int63n(2780)+100) * time.Minute)
 
 	t := time.Now()
 	q := queryMongo(collection, bson.M{"timestamp": bson.M{"$gte": _start_time, "$lte": _end_time}}, c.queryLimit, c.BatchSize)
@@ -467,10 +468,10 @@ func (pp *qa492Profile) findBy_date_range_and_user(collection *mgo.Collection, w
 	result := bson.M{}
 
 	// query start time is at least two days ago, to give enough range to query
-	_start_time := time.Now().Add((-1) * time.Duration(rand.Int63n(c.dateBacktrack-2880)) * time.Minute)
+	_start_time := time.Now().Add((-1) * time.Duration(rands[worker_id].Int63n(c.dateBacktrack-2880)) * time.Minute)
 
 	// query end time is at least 100 min, up to two days
-	_end_time := _start_time.Add(time.Duration(rand.Int63n(2780)+100) * time.Minute)
+	_end_time := _start_time.Add(time.Duration(rands[worker_id].Int63n(2780)+100) * time.Minute)
 
 	t := time.Now()
 
@@ -479,14 +480,14 @@ func (pp *qa492Profile) findBy_date_range_and_user(collection *mgo.Collection, w
 			bson.M{"timestamp": bson.M{
 				"$gte": _start_time,
 				"$lte": _end_time},
-				"user": c.getUser()},
+				"user": c.getUser(worker_id)},
 			c.queryLimit, c.BatchSize).Hint("timestamp")
 	} else {
 		q = queryMongo(collection,
 			bson.M{"timestamp": bson.M{
 				"$gte": _start_time,
 				"$lte": _end_time},
-				"user": c.getUser()},
+				"user": c.getUser(worker_id)},
 			c.queryLimit, c.BatchSize)
 	}
 
@@ -512,11 +513,11 @@ func (pp *qa492Profile) addRemoveTags_with_find_modify(collection *mgo.Collectio
 	// this will use findAndModify
 	doc := QA492_Event{}
 
-	tag_have := c.getTags(1)
-	tag_not_have := c.getTags(1)
+	tag_have := c.getTags(1, worker_id)
+	tag_not_have := c.getTags(1, worker_id)
 
 	change := mgo.Change{
-		Update:    c.getTags(rand.Intn(15)),
+		Update:    c.getTags(rands[worker_id].Intn(15), worker_id),
 		ReturnNew: true,
 	}
 
@@ -531,8 +532,8 @@ func (pp *qa492Profile) addRemoveTags_with_find_modify(collection *mgo.Collectio
 func (pp *qa492Profile) addRemoveTags(collection *mgo.Collection, worker_id int) error {
 	c := &_qa492Profile
 
-	tag_have := c.getTags(1)
-	tag_not_have := c.getTags(1)
+	tag_have := c.getTags(1, worker_id)
+	tag_not_have := c.getTags(1, worker_id)
 
 	// t := time.Now()
 	q := queryMongo(collection, bson.M{"tags": bson.M{"$in": tag_have, "$nin": tag_not_have}}, c.queryLimit, c.BatchSize)
@@ -548,7 +549,7 @@ func (pp *qa492Profile) addRemoveTags(collection *mgo.Collection, worker_id int)
 	for _iter.Next(&result) {
 		collection.UpdateId(result.ID,
 			bson.M{"$set": bson.M{
-				"tags": c.getTags(rand.Intn(15))}})
+				"tags": c.getTags(rands[worker_id].Intn(15), worker_id)}})
 		d = time.Now().UnixNano()
 
 		if !_in_warmup {
@@ -563,7 +564,7 @@ func (pp *qa492Profile) addRemoveTags(collection *mgo.Collection, worker_id int)
 func (pp *qa492Profile) updatePayloadDate(collection *mgo.Collection, worker_id int) error {
 	c := &_qa492Profile
 
-	tag_have := c.getTags(1)
+	tag_have := c.getTags(1, worker_id)
 
 	result := Event{}
 	_in_warmup := stats.IN_WARMUP
@@ -576,7 +577,7 @@ func (pp *qa492Profile) updatePayloadDate(collection *mgo.Collection, worker_id 
 	var d int64
 
 	for _iter.Next(&result) {
-		collection.UpdateId(result.ID, bson.M{"$set": bson.M{"payload": string(payloadBuffer[0:c.getPayloadSize()]), "timestamp": c.getTimeStamp()}})
+		collection.UpdateId(result.ID, bson.M{"$set": bson.M{"payload": string(payloadBuffer[0:c.getPayloadSize(worker_id)]), "timestamp": c.getTimeStamp(worker_id)}})
 		d = time.Now().UnixNano()
 		if !_in_warmup {
 			c.updateStats.RecordResponse(d - t1)
@@ -591,7 +592,7 @@ func (pp *qa492Profile) findByPayload(collection *mgo.Collection, worker_id int)
 	c := &_qa492Profile
 
 	t := time.Now()
-	q := queryMongo(collection, bson.M{"payload": string(payloadBuffer[0:c.getPayloadSize()])}, c.queryLimit, c.BatchSize)
+	q := queryMongo(collection, bson.M{"payload": string(payloadBuffer[0:c.getPayloadSize(worker_id)])}, c.queryLimit, c.BatchSize)
 	c.iterateAllDoc(q, 0, "findByPayload")
 	d := time.Since(t).Nanoseconds()
 
@@ -610,7 +611,7 @@ func (pp qa492Profile) SendNext(s *mgo.Session, worker_id int) error {
 
 	var err error
 
-	r := float64(rand.Intn(10000)) / 100.0
+	r := float64(rands[worker_id].Intn(10000)) / 100.0
 
 	// new qa492 call
 	// - findBy_stream_and_user

@@ -2,7 +2,6 @@ package profiles
 
 import (
 	"fmt"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 
@@ -48,19 +47,19 @@ func (i insertAggProfile) SendNext(s *mgo.Session, worker_id int) error {
 	err := c.Insert(bson.M{
 		"_id":            _u,
 		"name":           _u,
-		"rand_unindexed": rand.Intn(100000),
-		"rand_indexed":   rand.Intn(100000),
-		"rem100":         rand.Intn(100),
-		"array": [10]int{rand.Intn(10000),
-			rand.Intn(10000),
-			rand.Intn(10000),
-			rand.Intn(10000),
-			rand.Intn(10000),
-			rand.Intn(10000),
-			rand.Intn(10000),
-			rand.Intn(10000),
-			rand.Intn(10000),
-			rand.Intn(10000)}})
+		"rand_unindexed": rands[worker_id].Intn(100000),
+		"rand_indexed":   rands[worker_id].Intn(100000),
+		"rem100":         rands[worker_id].Intn(100),
+		"array": [10]int{rands[worker_id].Intn(10000),
+			rands[worker_id].Intn(10000),
+			rands[worker_id].Intn(10000),
+			rands[worker_id].Intn(10000),
+			rands[worker_id].Intn(10000),
+			rands[worker_id].Intn(10000),
+			rands[worker_id].Intn(10000),
+			rands[worker_id].Intn(10000),
+			rands[worker_id].Intn(10000),
+			rands[worker_id].Intn(10000)}})
 
 	return err
 }

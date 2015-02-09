@@ -2,8 +2,6 @@ package profiles
 
 import (
 	"fmt"
-	"math/rand"
-	"time"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -37,12 +35,12 @@ func (i insertDeleteProfile) SendNext(s *mgo.Session, worker_id int) error {
 		fmt.Println("Total doc", n)
 	}
 
-	_u := rand.Int63n(_insertDeleteProfile.MaxUID) // to find a random person
+	_u := rands[worker_id].Int63n(_insertDeleteProfile.MaxUID) // to find a random person
 
 	doc := bson.M{
 		"_id":     _u,
 		"name":    _u,
-		"group":   rand.Int(),
+		"group":   rands[worker_id].Int(),
 		"payload": &Payload}
 
 	if _profile_use_legacy_write {
@@ -75,7 +73,6 @@ func (i insertDeleteProfile) CsvHeader() string {
 
 func init() {
 	_insertDeleteProfile.MaxUID = 0
-	rand.Seed(time.Now().UnixNano())
 
 	// fmt.Println("Init Inplace Update  profile")
 

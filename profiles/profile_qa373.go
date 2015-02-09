@@ -3,12 +3,10 @@ package profiles
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"strconv"
 	"strings"
 	"sync/atomic"
-	"time"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -76,7 +74,7 @@ func (i qa373Profile) SendNext(s *mgo.Session, worker_id int) error {
 	if _use_normal {
 		_u = normalInRange(_qa373Profile.MaxUID, 0.16667)
 	} else {
-		_u = rand.Int63n(_qa373Profile.MaxUID) // to find a random person
+		_u = rands[worker_id].Int63n(_qa373Profile.MaxUID) // to find a random person
 
 	}
 
@@ -85,25 +83,25 @@ func (i qa373Profile) SendNext(s *mgo.Session, worker_id int) error {
 	// switch _qa373Profile.UpdateMode {
 	switch _update_mode {
 	case mode_Update: // regular update
-		err = c.Update(bson.M{"_id": _u}, bson.M{"$set": bson.M{"group": rand.Int()}})
+		err = c.Update(bson.M{"_id": _u}, bson.M{"$set": bson.M{"group": rands[worker_id].Int()}})
 
 	case mode_AddToSet:
-		err = c.Update(bson.M{"_id": _u}, bson.M{"$addToSet": bson.M{"payload": rand.Int63n(5000000) + 1}})
+		err = c.Update(bson.M{"_id": _u}, bson.M{"$addToSet": bson.M{"payload": rands[worker_id].Int63n(5000000) + 1}})
 
 	case mode_SetNewField: // $set random field
-		err = c.Update(bson.M{"_id": _u}, bson.M{"$set": bson.M{randomWord(10): rand.Int()}})
+		err = c.Update(bson.M{"_id": _u}, bson.M{"$set": bson.M{randomWord(10): rands[worker_id].Int()}})
 
 	case mode_Inc: // $inc
 		err = c.Update(bson.M{"_id": _u}, bson.M{"$inc": bson.M{"group": 1}})
 
 	case mode_Push: // $push
-		err = c.Update(bson.M{"_id": _u}, bson.M{"$push": bson.M{"payload": rand.Intn(5000)}})
+		err = c.Update(bson.M{"_id": _u}, bson.M{"$push": bson.M{"payload": rands[worker_id].Intn(5000)}})
 
 	case mode_PushPosition: // $inc
-		err = c.Update(bson.M{"_id": _u}, bson.M{"$push": bson.M{"payload": bson.M{"$each": []int{rand.Intn(5000), rand.Intn(5000)}, "$position": rand.Intn(20)}}})
+		err = c.Update(bson.M{"_id": _u}, bson.M{"$push": bson.M{"payload": bson.M{"$each": []int{rands[worker_id].Intn(5000), rands[worker_id].Intn(5000)}, "$position": rands[worker_id].Intn(20)}}})
 
 	case mode_SetOnInsert:
-		_, err = c.Upsert(bson.M{"_id": _u}, bson.M{"$setOnInsert": bson.M{"group": rand.Int63n(5000000) + 1}})
+		_, err = c.Upsert(bson.M{"_id": _u}, bson.M{"$setOnInsert": bson.M{"group": rands[worker_id].Int63n(5000000) + 1}})
 
 	// shrink doc
 	case mode_PopFirst:
@@ -113,14 +111,14 @@ func (i qa373Profile) SendNext(s *mgo.Session, worker_id int) error {
 		err = c.Update(bson.M{"_id": _u}, bson.M{"$pop": bson.M{"payload": 1}})
 
 	case mode_PullAll:
-		r := []int{rand.Intn(100), rand.Intn(100), rand.Intn(100)}
+		r := []int{rands[worker_id].Intn(100), rands[worker_id].Intn(100), rands[worker_id].Intn(100)}
 		err = c.Update(bson.M{"_id": _u}, bson.M{"$pullAll": bson.M{"payload": r}})
 
 	case mode_Pull:
-		err = c.Update(bson.M{"_id": _u}, bson.M{"$pull": bson.M{"payload": rand.Intn(20)}})
+		err = c.Update(bson.M{"_id": _u}, bson.M{"$pull": bson.M{"payload": rands[worker_id].Intn(20)}})
 
 	case mode_Unset:
-		err = c.Update(bson.M{"_id": _u}, bson.M{"$unset": bson.M{fmt.Sprintf("%d", rand.Intn(30)): ""}})
+		err = c.Update(bson.M{"_id": _u}, bson.M{"$unset": bson.M{fmt.Sprintf("%d", rands[worker_id].Intn(30)): ""}})
 
 	case mode_Staging_Unset:
 		i := atomic.AddInt64(&_qa373Profile.stagingId, 1)
@@ -159,8 +157,6 @@ func init() {
 	_qa373Profile.MaxUID = 0
 	_qa373Profile.stagingId = 0
 	_qa373Profile.MultiUpdate = 1
-
-	rand.Seed(time.Now().UnixNano())
 
 	_update_mode = mode_Update
 

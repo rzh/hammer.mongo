@@ -3,7 +3,6 @@ package profiles
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"strconv"
 	"sync"
@@ -44,9 +43,9 @@ func (i insertSmallProfile) SendNext(s *mgo.Session, worker_id int) error {
 
 	if insert_with_id {
 		_u := atomic.AddInt64(&_insertSmallProfile.UID, 1) // to make this unique
-		doc = bson.M{"_id": _u, "group": rand.Int63()}
+		doc = bson.M{"_id": _u, "group": rands[worker_id].Int63()}
 	} else {
-		doc = bson.M{"group": rand.Int63()}
+		doc = bson.M{"group": rands[worker_id].Int63()}
 	}
 
 	if _profile_use_legacy_write {

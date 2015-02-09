@@ -2,15 +2,15 @@ package profiles
 
 import (
 	"fmt"
-	"github.com/rzh/hammer.mongo/stats"
 	"log"
-	"math/rand"
 	"os"
 	"reflect"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/rzh/hammer.mongo/stats"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -76,39 +76,39 @@ type sbBenchProfile struct {
 
 var _sbBenchProfile sbBenchProfile
 
-func findOneBy_id_project(c *mgo.Collection, MaxUID int) error {
+func findOneBy_id_project(c *mgo.Collection, MaxUID int, worker_id int) error {
 	var result interface{}
 
-	c.FindId(rand.Intn(MaxUID)).Select(bson.M{"c": 1, "_id": 0}).One(&result)
+	c.FindId(rands[worker_id].Intn(MaxUID)).Select(bson.M{"c": 1, "_id": 0}).One(&result)
 
 	return nil
 }
 
-func findOneBy_id_project_with_agg(c *mgo.Collection, MaxUID int) error {
+func findOneBy_id_project_with_agg(c *mgo.Collection, MaxUID int, worker_id int) error {
 	var result interface{}
 
 	c.Pipe([]bson.M{
-		bson.M{"$match": bson.M{"_id": rand.Intn(MaxUID)}},
+		bson.M{"$match": bson.M{"_id": rands[worker_id].Intn(MaxUID)}},
 		bson.M{"$project": bson.M{"c": 1, "_id": 0}},
 	}).One(&result)
 
 	return nil
 }
 
-func rangeQuery_id_project(c *mgo.Collection, MaxUID int) error {
+func rangeQuery_id_project(c *mgo.Collection, MaxUID int, worker_id int) error {
 	var result []interface{}
 
-	start := rand.Intn(MaxUID - 200)
+	start := rands[worker_id].Intn(MaxUID - 200)
 
 	c.Find(bson.M{"_id": bson.M{"$gte": start, "$lte": start + 100}}).Select(bson.M{"c": 1, "_id": 0}).All(&result)
 
 	return nil
 }
 
-func rangeQuery_id_project_agg(c *mgo.Collection, MaxUID int) error {
+func rangeQuery_id_project_agg(c *mgo.Collection, MaxUID int, worker_id int) error {
 	var result []interface{}
 
-	start := rand.Intn(MaxUID - 200)
+	start := rands[worker_id].Intn(MaxUID - 200)
 
 	c.Pipe([]bson.M{
 		bson.M{"$match": bson.M{"_id": bson.M{"$gte": start, "$lte": start + 100}}},
@@ -118,11 +118,11 @@ func rangeQuery_id_project_agg(c *mgo.Collection, MaxUID int) error {
 	return nil
 }
 
-func aggregation(c *mgo.Collection, MaxUID int) error {
+func aggregation(c *mgo.Collection, MaxUID int, worker_id int) error {
 	var result interface{}
 
 	// find 100 doc
-	start := rand.Intn(MaxUID - 200)
+	start := rands[worker_id].Intn(MaxUID - 200)
 
 	c.Pipe([]bson.M{
 		{"$match": bson.M{"_id": bson.M{"$gte": start, "$lte": start + 100}}},
@@ -133,10 +133,10 @@ func aggregation(c *mgo.Collection, MaxUID int) error {
 	return nil
 }
 
-func rangQuery_id_project_sort_c_1(c *mgo.Collection, MaxUID int) error {
+func rangQuery_id_project_sort_c_1(c *mgo.Collection, MaxUID int, worker_id int) error {
 	var result []interface{}
 
-	start := rand.Intn(MaxUID - 200)
+	start := rands[worker_id].Intn(MaxUID - 200)
 
 	q := c.Find(bson.M{"_id": bson.M{"$gte": start, "$lte": start + 100}})
 	q.Select(bson.M{"c": 1, "_id": 0})
@@ -146,10 +146,10 @@ func rangQuery_id_project_sort_c_1(c *mgo.Collection, MaxUID int) error {
 	return nil
 }
 
-func rangQuery_id_project_sort_c_1_agg(c *mgo.Collection, MaxUID int) error {
+func rangQuery_id_project_sort_c_1_agg(c *mgo.Collection, MaxUID int, worker_id int) error {
 	var result []interface{}
 
-	start := rand.Intn(MaxUID - 200)
+	start := rands[worker_id].Intn(MaxUID - 200)
 
 	c.Pipe([]bson.M{
 		{"$match": bson.M{"_id": bson.M{"$gte": start, "$lte": start + 100}}},
@@ -160,10 +160,10 @@ func rangQuery_id_project_sort_c_1_agg(c *mgo.Collection, MaxUID int) error {
 	return nil
 }
 
-func rangeQuery_id_distinct(c *mgo.Collection, MaxUID int) error {
+func rangeQuery_id_distinct(c *mgo.Collection, MaxUID int, worker_id int) error {
 	var result interface{}
 
-	start := rand.Intn(MaxUID - 200)
+	start := rands[worker_id].Intn(MaxUID - 200)
 
 	q := c.Find(bson.M{"_id": bson.M{"$gte": start, "$lte": start + 100}})
 	q.Select(bson.M{"c": 1, "_id": 0})
@@ -172,10 +172,10 @@ func rangeQuery_id_distinct(c *mgo.Collection, MaxUID int) error {
 	return nil
 }
 
-func rangeQuery_id_distinct_agg(c *mgo.Collection, MaxUID int) error {
+func rangeQuery_id_distinct_agg(c *mgo.Collection, MaxUID int, worker_id int) error {
 	var result interface{}
 
-	start := rand.Intn(MaxUID - 200)
+	start := rands[worker_id].Intn(MaxUID - 200)
 
 	c.Pipe([]bson.M{
 		{"$match": bson.M{"_id": bson.M{"$gte": start, "$lte": start + 100}}},
@@ -185,54 +185,54 @@ func rangeQuery_id_distinct_agg(c *mgo.Collection, MaxUID int) error {
 	return nil
 }
 
-func singleQuery_inc_k(c *mgo.Collection, MaxUID int) error {
-	c.Update(bson.M{"_id": rand.Intn(MaxUID)}, bson.M{"$inc": bson.M{"k": 1}})
+func singleQuery_inc_k(c *mgo.Collection, MaxUID int, worker_id int) error {
+	c.Update(bson.M{"_id": rands[worker_id].Intn(MaxUID)}, bson.M{"$inc": bson.M{"k": 1}})
 
 	return nil
 }
 
-func setField_c(c *mgo.Collection, MaxUID int) error {
-	// c.Update(bson.M{"_id": rand.Intn(MaxUID)}, bson.M{"$set": bson.M{"c": createRandC()}})
-	c.Update(bson.M{"_id": 1}, bson.M{"$set": bson.M{"c": createRandC()}})
+func setField_c(c *mgo.Collection, MaxUID int, worker_id int) error {
+	// c.Update(bson.M{"_id": rands[worker_id].Intn(MaxUID)}, bson.M{"$set": bson.M{"c": createRandC()}})
+	c.Update(bson.M{"_id": 1}, bson.M{"$set": bson.M{"c": createRandC(worker_id)}})
 
 	return nil
 }
 
-func removeThenAdd(c *mgo.Collection, MaxUID int) error {
-	_u := rand.Intn(MaxUID)
+func removeThenAdd(c *mgo.Collection, MaxUID int, worker_id int) error {
+	_u := rands[worker_id].Intn(MaxUID)
 	c.Remove(bson.M{"_id": _u})
 	c.Insert(bson.M{
 		"_id": _u,
-		"k":   rand.Intn(10000000),
-		"c":   createRandC(),
-		"pad": createRandPad()})
+		"k":   rands[worker_id].Intn(10000000),
+		"c":   createRandC(worker_id),
+		"pad": createRandPad(worker_id)})
 
 	return nil
 }
 
-func pushFirst(c *mgo.Collection, MaxUID int) error {
-	_u := rand.Intn(MaxUID)
+func pushFirst(c *mgo.Collection, MaxUID int, worker_id int) error {
+	_u := rands[worker_id].Intn(MaxUID)
 
-	// err := c.Update(bson.M{"_id": _u}, bson.M{"$push": bson.M{"array": rand.Intn(5000)}})
-	err := c.Update(bson.M{"_id": _u}, bson.M{"$push": bson.M{"array": bson.M{"$each": []int{rand.Intn(5000), rand.Intn(5000)}, "$position": 0}}})
+	// err := c.Update(bson.M{"_id": _u}, bson.M{"$push": bson.M{"array": rands[worker_id].Intn(5000)}})
+	err := c.Update(bson.M{"_id": _u}, bson.M{"$push": bson.M{"array": bson.M{"$each": []int{rands[worker_id].Intn(5000), rands[worker_id].Intn(5000)}, "$position": 0}}})
 	// panicOnError(err)
 	return err
 }
 
-func pushLast(c *mgo.Collection, MaxUID int) error {
-	_u := rand.Intn(MaxUID)
+func pushLast(c *mgo.Collection, MaxUID int, worker_id int) error {
+	_u := rands[worker_id].Intn(MaxUID)
 
-	err := c.Update(bson.M{"_id": _u}, bson.M{"$push": bson.M{"array": rand.Intn(5000)}})
+	err := c.Update(bson.M{"_id": _u}, bson.M{"$push": bson.M{"array": rands[worker_id].Intn(5000)}})
 	return err
 }
 
 // additional traffic
-func additional_traffic(c *mgo.Collection, MaxUID int) error {
-	_u := rand.Intn(MaxUID)
-	// c.Update(bson.M{"_id": rand.Intn(s.MaxUID)}, bson.M{"$set": bson.M{"c": createRandC()}})
+func additional_traffic(c *mgo.Collection, MaxUID int, worker_id int) error {
+	_u := rands[worker_id].Intn(MaxUID)
+	// c.Update(bson.M{"_id": rands[worker_id].Intn(s.MaxUID)}, bson.M{"$set": bson.M{"c": createRandC()}})
 
 	// mode_Update
-	err := c.Update(bson.M{"_id": _u}, bson.M{"$set": bson.M{"group": rand.Int()}})
+	err := c.Update(bson.M{"_id": _u}, bson.M{"$set": bson.M{"group": rands[worker_id].Int()}})
 	_ = err
 
 	// mode_AddToSet, cannot do this now
@@ -257,9 +257,9 @@ func (sb sbBenchProfile) SendNext(s *mgo.Session, worker_id int) error {
 			err = nil
 			for j := 0; j < SB_Ops[i].NumOps; j++ {
 				if err == nil {
-					err = SB_Ops[i].f(c, _sbBenchProfile.MaxUID)
+					err = SB_Ops[i].f(c, _sbBenchProfile.MaxUID, worker_id)
 				} else {
-					SB_Ops[i].f(c, _sbBenchProfile.MaxUID)
+					SB_Ops[i].f(c, _sbBenchProfile.MaxUID, worker_id)
 				}
 			}
 
@@ -327,8 +327,6 @@ func init() {
 	_sbBenchProfile.UID = 0
 	_sbBenchProfile.MaxUID = -1
 	Run_TOKU_Test = false
-
-	rand.Seed(time.Now().UnixNano())
 
 	SB_Ops[SYSBENCH_POINT_SELECTS].f = findOneBy_id_project
 	SB_Ops[SYSBENCH_POINT_SELECTS_AGG].f = findOneBy_id_project_with_agg

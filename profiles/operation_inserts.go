@@ -2,7 +2,6 @@ package profiles
 
 import (
 	"log"
-	"math/rand"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -13,7 +12,7 @@ var ht_insert_batch_size int = 1 // default to single insert
 var ht_insert_without_id int = 0 // default to with id
 var ht_query_max_id int = 0
 
-func insert_16M_doc_no_id(c *mgo.Collection, MaxUID int) error {
+func insert_16M_doc_no_id(c *mgo.Collection, MaxUID int, worker_id int) error {
 	err := c.Insert(bson.M{
 		"pld1": payload_4M,
 		"pld2": payload_4M,
@@ -22,8 +21,8 @@ func insert_16M_doc_no_id(c *mgo.Collection, MaxUID int) error {
 	return err
 }
 
-func op_query(c *mgo.Collection, MaxUID int) error {
-	_u := rand.Intn(5000) // to find a random person
+func op_query(c *mgo.Collection, MaxUID int, worker_id int) error {
+	_u := rands[worker_id].Intn(5000) // to find a random person
 	var _p []interface{}
 
 	var err error
@@ -32,7 +31,7 @@ func op_query(c *mgo.Collection, MaxUID int) error {
 	return err
 }
 
-func write_insert_doc(c *mgo.Collection, MaxUID int) error {
+func write_insert_doc(c *mgo.Collection, MaxUID int, worker_id int) error {
 	var results interface{}
 	var docs []bson.M = make([]bson.M, ht_insert_batch_size)
 

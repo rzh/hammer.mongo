@@ -2,7 +2,7 @@ package profiles
 
 import (
 	// "fmt"
-	"math/rand"
+
 	"sync/atomic"
 
 	"gopkg.in/mgo.v2"
@@ -36,11 +36,11 @@ var _adhocInsertProfile adhocInsertProfile
 
 var simpleArray [20]int
 
-func randomArrayInt(n int) []int {
+func randomArrayInt(n int, worker_id int) []int {
 	a := make([]int, n)
 
 	for i := 0; i < n; i++ {
-		a[i] = rand.Int()
+		a[i] = rands[worker_id].Int()
 	}
 
 	return a
@@ -54,7 +54,7 @@ func (i adhocInsertProfile) SendNext(s *mgo.Session, worker_id int) error {
 	err := c.Insert(bson.M{
 		"_id":   _u,
 		"name":  randomString(20),
-		"group": rand.Int(),
+		"group": rands[worker_id].Int(),
 		//"simpleArray": randomArrayInt(20),
 		//"payload":     &Payload,
 		//"payload1":    &Payload1,

@@ -28,7 +28,6 @@ package profiles
 
 import (
 	"fmt"
-	"github.com/rzh/hammer.mongo/stats"
 	"log"
 	"math"
 	"math/rand"
@@ -36,6 +35,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/rzh/hammer.mongo/stats"
 
 	"code.google.com/p/gcfg"
 	"gopkg.in/mgo.v2"
@@ -187,49 +188,48 @@ type QA408Distribution struct {
 	- avoid return large chunk of data, such as for Payload
 */
 
-func (c *composedProfile) getTags(n int) []string {
+func (c *composedProfile) getTags(n int, worker_id int) []string {
 	// need to add return of multiple tag
 
-	// a := rand.Intn(n)
 	buffer := make([]string, n)
 
 	for i := 0; i < n; i++ {
-		buffer[i] = tagNames[rand.Intn(len(tagNames))]
+		buffer[i] = tagNames[rands[worker_id].Intn(len(tagNames))]
 	}
 
 	return buffer
 
-	// return []string{tagNames[rand.Intn(len(tagNames))]}
+	// return []string{tagNames[rands[worker_id].Intn(len(tagNames))]}
 }
 
-func (c *composedProfile) getStream() string {
-	return streamNames[rand.Intn(len(streamNames))]
+func (c *composedProfile) getStream(worker_id int) string {
+	return streamNames[rands[worker_id].Intn(len(streamNames))]
 }
 
-func (c *composedProfile) getPosition() int {
-	return rand.Intn(1000) // max position to 1000 since there is no requirement for this
+func (c *composedProfile) getPosition(worker_id int) int {
+	return rands[worker_id].Intn(1000) // max position to 1000 since there is no requirement for this
 }
 
-func (c *composedProfile) getPayloadSize() int {
-	r := int(rand.NormFloat64()*200 + 500)
+func (c *composedProfile) getPayloadSize(worker_id int) int {
+	r := int(rands[worker_id].NormFloat64()*200 + 500)
 
 	if r < 0 {
 		// log.Println("length is less than 0:", r)
-		r = 250 + rand.Intn(500)
+		r = 250 + rands[worker_id].Intn(500)
 	} else if r > len(payloadBuffer) {
-		r = 250 + rand.Intn(500) // FIXME:
+		r = 250 + rands[worker_id].Intn(500) // FIXME:
 	}
 
 	return r // no more than 10k
 }
 
-func (c *composedProfile) getTimeStamp() time.Time {
-	return time.Now().Add((-1) * time.Duration(rand.Int63n(_dataBacktrack)) * time.Minute) // distribute to the last 30 days
+func (c *composedProfile) getTimeStamp(worker_id int) time.Time {
+	return time.Now().Add((-1) * time.Duration(rands[worker_id].Int63n(_dataBacktrack)) * time.Minute) // distribute to the last 30 days
 }
 
 func randomPayloadBuffer() {
 	for i := 0; i < len(payloadBuffer); i++ {
-		payloadBuffer[i] = byte(all_chars[rand.Intn(len(all_chars))]) // init payloadBuffer with random chars
+		payloadBuffer[i] = byte(all_chars[rand.Intn(len(all_chars))]) // init payloadBuffer with random chars, ok to use rand
 	}
 }
 
@@ -276,11 +276,11 @@ func (c *composedProfile) addNewDoc(collection *mgo.Collection, _log bool, worke
 	_in_warmup := stats.IN_WARMUP
 
 	err := collection.Insert(&Event{
-		Tags:      c.getTags(rand.Intn(15)),
-		Stream:    c.getStream(),
-		Position:  c.getPosition(), // integ
-		Payload:   string(payloadBuffer[0:c.getPayloadSize()]),
-		Timestamp: c.getTimeStamp(),
+		Tags:      c.getTags(rands[worker_id].Intn(15), worker_id),
+		Stream:    c.getStream(worker_id),
+		Position:  c.getPosition(worker_id), // integ
+		Payload:   string(payloadBuffer[0:c.getPayloadSize(worker_id)]),
+		Timestamp: c.getTimeStamp(worker_id),
 	}) // whether to use a cache object to speed up, not sure which works better. TODO:
 
 	if _log && !_in_warmup {
@@ -299,7 +299,7 @@ func (c *composedProfile) addNewDoc(collection *mgo.Collection, _log bool, worke
 
 func (c *composedProfile) findByStreamName(collection *mgo.Collection, worker_id int) error {
 	t := time.Now()
-	q := queryMongo(collection, bson.M{"stream": c.getStream()}, c.queryLimit, c.BatchSize)
+	q := queryMongo(collection, bson.M{"stream": c.getStream(worker_id)}, c.queryLimit, c.BatchSize)
 	// q.Iter().Next(&result)
 	err := c.iterateAllDoc(q, 0, "findByStreamName")
 	d := time.Since(t).Nanoseconds()
@@ -316,7 +316,7 @@ func (c *composedProfile) findByStreamName(collection *mgo.Collection, worker_id
 func (c *composedProfile) findByTag(collection *mgo.Collection, worker_id int) error {
 	// result := Event{}
 	t := time.Now()
-	q := queryMongo(collection, bson.M{"tags": bson.M{"$in": c.getTags(1)}}, c.queryLimit, c.BatchSize)
+	q := queryMongo(collection, bson.M{"tags": bson.M{"$in": c.getTags(1, worker_id)}}, c.queryLimit, c.BatchSize)
 	err := c.iterateAllDoc(q, 0, "findByTag")
 	d := time.Since(t).Nanoseconds()
 
@@ -332,10 +332,10 @@ func (c *composedProfile) findByTag(collection *mgo.Collection, worker_id int) e
 func (c *composedProfile) findByDateRange(collection *mgo.Collection, worker_id int) error {
 
 	// query start time is at least two days ago, to give enough range to query
-	_start_time := time.Now().Add((-1) * time.Duration(rand.Int63n(_dataBacktrack-2880)) * time.Minute)
+	_start_time := time.Now().Add((-1) * time.Duration(rands[worker_id].Int63n(_dataBacktrack-2880)) * time.Minute)
 
 	// query end time is at least 100 min, up to two days
-	_end_time := _start_time.Add(time.Duration(rand.Int63n(2780)+100) * time.Minute)
+	_end_time := _start_time.Add(time.Duration(rands[worker_id].Int63n(2780)+100) * time.Minute)
 
 	t := time.Now()
 	q := queryMongo(collection, bson.M{"timestamp": bson.M{"$gte": _start_time, "$lte": _end_time}}, c.queryLimit, c.BatchSize)
@@ -355,11 +355,11 @@ func (c *composedProfile) addRemoveTags_with_find_modify(collection *mgo.Collect
 	// this will use findAndModify
 	doc := Event{}
 
-	tag_have := c.getTags(1)
-	tag_not_have := c.getTags(1)
+	tag_have := c.getTags(1, worker_id)
+	tag_not_have := c.getTags(1, worker_id)
 
 	change := mgo.Change{
-		Update:    c.getTags(rand.Intn(15)),
+		Update:    c.getTags(rands[worker_id].Intn(15), worker_id),
 		ReturnNew: true,
 	}
 
@@ -370,8 +370,8 @@ func (c *composedProfile) addRemoveTags_with_find_modify(collection *mgo.Collect
 }
 
 func (c *composedProfile) addRemoveTags(collection *mgo.Collection, worker_id int) error {
-	tag_have := c.getTags(1)
-	tag_not_have := c.getTags(1)
+	tag_have := c.getTags(1, worker_id)
+	tag_not_have := c.getTags(1, worker_id)
 
 	// t := time.Now()
 	q := queryMongo(collection, bson.M{"tags": bson.M{"$in": tag_have, "$nin": tag_not_have}}, c.queryLimit, c.BatchSize)
@@ -387,7 +387,7 @@ func (c *composedProfile) addRemoveTags(collection *mgo.Collection, worker_id in
 	for _iter.Next(&result) {
 		collection.UpdateId(result.ID,
 			bson.M{"$set": bson.M{
-				"tags": c.getTags(rand.Intn(15))}})
+				"tags": c.getTags(rands[worker_id].Intn(15), worker_id)}})
 
 		d = time.Now().UnixNano()
 
@@ -403,7 +403,7 @@ func (c *composedProfile) addRemoveTags(collection *mgo.Collection, worker_id in
 func (c *composedProfile) updatePayloadDate(collection *mgo.Collection, worker_id int) error {
 	// doc := Event{}
 
-	tag_have := c.getTags(1)
+	tag_have := c.getTags(1, worker_id)
 
 	result := Event{}
 	_in_warmup := stats.IN_WARMUP
@@ -416,7 +416,7 @@ func (c *composedProfile) updatePayloadDate(collection *mgo.Collection, worker_i
 	var d int64
 
 	for _iter.Next(&result) {
-		collection.UpdateId(result.ID, bson.M{"$set": bson.M{"payload": string(payloadBuffer[0:c.getPayloadSize()]), "timestamp": c.getTimeStamp()}})
+		collection.UpdateId(result.ID, bson.M{"$set": bson.M{"payload": string(payloadBuffer[0:c.getPayloadSize(worker_id)]), "timestamp": c.getTimeStamp(worker_id)}})
 		d = time.Now().UnixNano()
 		if !_in_warmup {
 			c.updateStats.RecordResponse(d - t1)
@@ -429,7 +429,7 @@ func (c *composedProfile) updatePayloadDate(collection *mgo.Collection, worker_i
 
 func (c *composedProfile) findByPayload(collection *mgo.Collection, worker_id int) error {
 	t := time.Now()
-	q := queryMongo(collection, bson.M{"payload": string(payloadBuffer[0:c.getPayloadSize()])}, c.queryLimit, c.BatchSize)
+	q := queryMongo(collection, bson.M{"payload": string(payloadBuffer[0:c.getPayloadSize(worker_id)])}, c.queryLimit, c.BatchSize)
 	c.iterateAllDoc(q, 0, "findByPayload")
 	d := time.Since(t).Nanoseconds()
 
@@ -450,7 +450,7 @@ func (pp composedProfile) SendNext(s *mgo.Session, worker_id int) error {
 
 	var err error
 
-	r := float64(rand.Intn(10000)) / 100.0
+	r := float64(rands[worker_id].Intn(10000)) / 100.0
 
 	switch {
 	case r < c.threshold.th_FindByStreamName:

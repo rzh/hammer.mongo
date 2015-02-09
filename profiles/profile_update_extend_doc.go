@@ -2,8 +2,6 @@ package profiles
 
 import (
 	"fmt"
-	"math/rand"
-	"time"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -35,10 +33,10 @@ func (i extendUpdateProfile) SendNext(s *mgo.Session, worker_id int) error {
 		fmt.Println("Total doc", n)
 	}
 
-	_u := rand.Int63n(_extendUpdateProfile.MaxUID) // to find a random person
+	_u := rands[worker_id].Int63n(_extendUpdateProfile.MaxUID) // to find a random person
 	// var _p [100]byte
 
-	err := c.Update(bson.M{"_id": _u}, bson.M{"$set": bson.M{"group": rand.Int(), "newField": &Payload}}) // insert a new record
+	err := c.Update(bson.M{"_id": _u}, bson.M{"$set": bson.M{"group": rands[worker_id].Int(), "newField": &Payload}}) // insert a new record
 	// err := db.C("posts").UpdateId(id, bson.M{"$set": bson.M{"field1": "v1"}})
 
 	if err != nil {
@@ -63,7 +61,6 @@ func (i extendUpdateProfile) CsvHeader() string {
 
 func init() {
 	_extendUpdateProfile.MaxUID = 0
-	rand.Seed(time.Now().UnixNano())
 
 	_profile_name := "extendedUpdate"
 	// fmt.Println("Init ", _profile_name, "  profile")

@@ -3,7 +3,6 @@ package profiles
 import (
 	"fmt"
 
-	"math/rand"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -44,7 +43,7 @@ func (i bulkInsertProfile) SendNext(s *mgo.Session, worker_id int) error {
 		docs[i] = bson.M{
 			"_id": _u,
 			// "payload": payload_400k,
-			"payload": rand.Int63(),
+			"payload": rands[worker_id].Int63(),
 		}
 	}
 

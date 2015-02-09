@@ -2,7 +2,6 @@ package profiles
 
 import (
 	"fmt"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 
@@ -29,7 +28,7 @@ func (i addPipelineProfile) SendNext(s *mgo.Session, worker_id int) error {
 	result := bson.M{}
 
 	pipe := c.Pipe([]bson.M{
-		{"$match": bson.M{"rand_indexed": bson.M{"$gt": rand.Int63n(_addPipelineProfile.MaxUID) / 2}}},
+		{"$match": bson.M{"rand_indexed": bson.M{"$gt": rands[worker_id].Int63n(_addPipelineProfile.MaxUID) / 2}}},
 		{"$limit": 100},
 		{"$group": bson.M{"_id": "$rem100", "array": bson.M{"$first": "$array"}}},
 		{"$unwind": "$array"},
