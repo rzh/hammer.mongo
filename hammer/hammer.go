@@ -13,9 +13,9 @@ import (
 	"syscall"
 	"time"
 
-	"gopkg.in/mgo.v2"
 	"github.com/rzh/hammer.mongo/profiles"
 	"github.com/rzh/hammer.mongo/stats"
+	"gopkg.in/mgo.v2"
 )
 
 // some internal variable
@@ -284,6 +284,12 @@ func Init(
 
 	// init http here
 	go func() {
+		s := os.Getenv("HAMMER_REMOTE_UI")
+
+		if s == "" {
+			// no webUI
+			return
+		}
 		mhttp := http.NewServeMux()
 		mhttp.Handle("/", http.FileServer(http.Dir("./UI/public")))
 
@@ -291,9 +297,7 @@ func Init(
 			mhttp.ServeHTTP(w, r)
 		})
 
-		s := os.Getenv("HAMMER_REMOTE_UI")
-
-		if s != "" || runtime.GOOS != "darwin" {
+		if runtime.GOOS != "darwin" {
 			// if specified HAMMER_REMOTE_UI or non-darwin platform, always binding to ethernet
 			log.Fatal(http.ListenAndServe(":6789", nil))
 		} else {
