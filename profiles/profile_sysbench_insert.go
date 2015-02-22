@@ -7,6 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	wrapper "github.com/rzh/hammer.mongo/mgowrapper"
+
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -83,7 +85,7 @@ func (i sbInsertProfile) SendNext(s *mgo.Session, worker_id int) error {
 	var _u int64
 
 	// docs := make([]bson.M, _sb_batch_insert_size)
-	docs := make([]interface{}, _sb_batch_insert_size)
+	docs := make([]bson.M, _sb_batch_insert_size)
 
 	_u = atomic.AddInt64(&_sbInsertProfile.UID, _sb_batch_insert_size) // to make this unique, and grab 1000 ids
 	for i := 0; i < _sb_batch_insert_size; i++ {
@@ -98,7 +100,8 @@ func (i sbInsertProfile) SendNext(s *mgo.Session, worker_id int) error {
 	// we shall insert for all the DB & collections
 	for i := 1; i <= _multi_db; i++ {
 		for j := 1; j <= _multi_col; j++ {
-			err := s.DB(default_db_name_prefix + strconv.Itoa(i)).C(default_col_name_prefix + strconv.Itoa(j)).Insert(docs...)
+			//err := s.DB(default_db_name_prefix + strconv.Itoa(i)).C(default_col_name_prefix + strconv.Itoa(j)).Insert(docs...)
+			err := wrapper.Insert(s.DB(default_db_name_prefix+strconv.Itoa(i)).C(default_col_name_prefix+strconv.Itoa(j)), docs)
 			panicOnError(err)
 		}
 	}
