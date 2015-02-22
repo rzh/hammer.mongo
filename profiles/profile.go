@@ -26,6 +26,7 @@ type Profile interface {
 var rands []*rand.Rand
 
 func InitProfile(_num_of_workers int) {
+	log.Println("Init profiles")
 	rands = make([]*rand.Rand, _num_of_workers, _num_of_workers)
 
 	for i := 0; i < _num_of_workers; i++ {

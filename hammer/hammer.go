@@ -216,6 +216,7 @@ func Init(
 
 	initialized = true
 	workers = make([]MongoWorker, _num_of_workers)
+	profiles.InitProfile(_num_of_workers)
 
 	stats.HammerMongoStats.InitMongo_Monitor(mongo_server)
 	stats.SetSilent(_quiet)             // pass -quiet flag to stats
