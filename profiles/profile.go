@@ -85,12 +85,18 @@ func GetProfileCSVHeader() string {
 	return _currentProfile.CsvHeader()
 }
 
+var _get_profile_mutex sync.Mutex
+
 func GetProfile(s string) Profile {
+	// sync _get_profile
+	_get_profile_mutex.Lock()
+
 	if _, ok := _profiles[s]; ok {
 		_currentProfile = _profiles[s]()
+		_get_profile_mutex.Unlock()
 		return _profiles[s]()
 	} else {
-		fmt.Println("\n\nError: Please specify a valid profile name, valid profiles are:")
+		fmt.Println("\n\nError: Profile= " + s + " Please specify a valid profile name, valid profiles are:")
 		for key, _ := range _profiles {
 			fmt.Println("    ", key)
 		}
