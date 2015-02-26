@@ -42,7 +42,7 @@ use the binary
 To use pre-build binaries, just do this:
 
 <pre>
-wget --no-check-certificate https://raw.githubusercontent.com/rzh/hammer.mongo/master/scripts/bootstrap.sh -O - | sh
+wget --no-check-certificate https://raw.githubusercontent.com/rzh/hammer.mongo/master/scripts/bootstrap.sh -O - | bash
 </pre>
 
 It will download the binaries, and necessary scripts. No need to install Go. Linux/64 and Darwin/64 are support at this moment. Simple run script to run the workload
