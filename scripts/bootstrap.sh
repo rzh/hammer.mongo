@@ -1,6 +1,6 @@
 #!env bash
 
-VERSION="v0.1.3"
+VERSION="v0.1.4"
 SCRIPTS=(bulk_insert.bash simple_insert.sh config.sh contended_update.sh)
 echo "bootstrap hammer.time"
 
