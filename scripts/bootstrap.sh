@@ -29,10 +29,9 @@ rm hammer.tar.gz
 # download scripts
 for f in "${SCRIPTS[@]}"
 do
-    if [ -f $f ]; then
-        rm $f
+    if [ ! -f $f ]; then
+        wget https://raw.githubusercontent.com/rzh/hammer.mongo/master/scripts/$f
+        chmod +x $f
     fi
-
-    wget https://raw.githubusercontent.com/rzh/hammer.mongo/master/scripts/$f
-    chmod +x $f
+    # skip file if the file already exist
 done
