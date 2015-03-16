@@ -59,7 +59,7 @@ func (i insertProfile) SendNext(s *mgo.Session, worker_id int) error {
 	_u := atomic.AddInt64(&_insertProfile.UID, 1) // to make this unique
 
 	doc := bson.M{
-		// "_id":      _u,
+		"_id":      _u,
 		"name":     _u,
 		"group":    rands[worker_id].Int(),
 		"payload":  &Payload,

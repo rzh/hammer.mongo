@@ -13,8 +13,8 @@ import (
 */
 
 type query_single_doc_Profile struct {
-	MaxUID    int64
-	USE_NO_Id bool
+	MaxUID int64
+	USE_ID bool
 
 	session *mgo.Session
 }
@@ -39,11 +39,11 @@ func (i query_single_doc_Profile) SendNext(s *mgo.Session, worker_id int) error 
 	_p := SmallDoc{}
 
 	var err error
-	if i.USE_NO_Id {
+	if i.USE_ID {
+		err = c.Find(bson.M{"_id": _u}).Limit(1).Explain(&_p)
+	} else {
 		// query to not use _ID
 		err = c.Find(bson.M{"name": _u}).Limit(1).Explain(&_p)
-	} else {
-		err = c.Find(bson.M{"_id": _u}).Limit(1).Explain(&_p)
 	}
 
 	if err != nil {
@@ -79,9 +79,9 @@ func init() {
 	// fmt.Println("Done ", _profile_name, " profile")
 
 	// this is a hack! to be removed later  FIXME
-	if os.Getenv("HT_NO_ID") != "" {
-		_query_single_doc_Profile.USE_NO_Id = true
+	if os.Getenv("HT_USE_ID") != "" {
+		_query_single_doc_Profile.USE_ID = true
 	} else {
-		_query_single_doc_Profile.USE_NO_Id = false
+		_query_single_doc_Profile.USE_ID = false
 	}
 }
