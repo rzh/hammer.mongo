@@ -11,3 +11,10 @@ GOOS=linux build linux
 
 echo "build binary for MacOS"
 GOOS=darwin build macos
+
+# make releaes file
+rm ./bin/hammer.tar.gz
+cd bin
+tar cvf hammer.tar *
+gzip hammer.tar
+
