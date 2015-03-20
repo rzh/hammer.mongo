@@ -29,6 +29,9 @@ var (
 	totaltime int64
 	warmup    int64
 	worker    int
+	ssl bool
+	sslca string // PEM file for the CA
+	sslkey string // PEM key file for the client
 )
 
 type HammerConfig struct {
@@ -114,9 +117,11 @@ func init() {
 	flag.Int64Var(&total, "total", 0, "Total request to be sent, default to unlimited (0)")
 	flag.Int64Var(&warmup, "warmup", 0, "To set how long (seconds) for warmup DB")
 	flag.IntVar(&worker, "worker", 10, "Number of workers, every worker will have two connections to mongodb")
-
 	flag.Int64Var(&totaltime, "totaltime", 0, "To set how long (seconds) to run the test")
 	flag.StringVar(&config, "config", "", "To use config file")
+	flag.BoolVar(&ssl, "ssl", false, "enable SSL")
+	flag.StringVar(&sslca, "sslCAFile", "", "PEM file for CA")
+	flag.StringVar(&sslkey, "sslPEMKeyFile", "", "Key file for client")
 	// flag.StringVar(&gen,       "gen",       "",                "To generate a sample configuration file")
 }
 
