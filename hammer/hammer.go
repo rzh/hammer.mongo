@@ -3,11 +3,16 @@ package hammer
 import (
 	"fmt"
 
+	"crypto/x509"
+	"crypto/tls"
+	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -182,7 +187,10 @@ func Init(
 	_warmup int64,
 	_total_time int64,
 	_quiet bool,
-	_run_id string) {
+	_run_id string,
+	_ssl bool,
+	_ssl_ca string,
+	_ssl_key string) {
 	/**
 		- init core data structure
 		- init all workers if specified.
@@ -214,11 +222,57 @@ func Init(
 		fmt.Print("Init workers...")
 	}
 
+	var dial_info mgo.DialInfo
+
+	if _ssl {
+		key_data, err1 := ioutil.ReadFile(_ssl_ca)
+		ca_data, err2 := ioutil.ReadFile(_ssl_ca)
+
+		if err1 != nil || err2 != nil {
+			panic("could not read PEM file")
+		}
+
+		tlsConfig := &tls.Config{
+			RootCAs: x509.NewCertPool(),
+			ServerName: "",
+			InsecureSkipVerify: true,
+			ClientAuth: tls.RequireAnyClientCert,
+		}
+		ok1 := tlsConfig.RootCAs.AppendCertsFromPEM(key_data)
+		ok2 := tlsConfig.RootCAs.AppendCertsFromPEM(ca_data)
+
+		if !ok1 || !ok2 {
+            panic("Couldn't load PEM data")
+        }
+
+		dial := func(addr net.Addr) (net.Conn, error) {
+			conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
+			if err != nil {
+				log.Println("tls.Dial(%s) failed with %v", addr, err)
+				return nil, err
+			}
+			return conn, nil
+		}
+
+		dial_info = mgo.DialInfo{
+			FailFast: true,
+			Addrs:    strings.Split(_server, ","),
+			Dial: dial,
+		}
+
+	} else {
+		dial_info = mgo.DialInfo{
+			FailFast: true,
+			Addrs:    strings.Split(_server, ","),
+		}
+	}
+
+
 	initialized = true
 	workers = make([]MongoWorker, _num_of_workers)
 	profiles.InitProfile(_num_of_workers)
 
-	stats.HammerMongoStats.InitMongo_Monitor(mongo_server)
+	stats.HammerMongoStats.InitMongo_Monitor(mongo_server, dial_info)
 	stats.SetSilent(_quiet)             // pass -quiet flag to stats
 	stats.SetNumWorker(_num_of_workers) // make sure stats know how many workers is there
 
@@ -246,7 +300,7 @@ func Init(
 					log.Println("worker ", i, " initialization started")
 				}
 				_initdb = false
-				workers[myid].InitWorker(int(myid), mongo_server, _initdb_local, _profile, _total, nil) // just use array index as worker id, worker will NOT start running immediately
+				workers[myid].InitWorker(int(myid), mongo_server, _initdb_local, _profile, _total, dial_info, nil) // just use array index as worker id, worker will NOT start running immediately
 				masterMgoSession = workers[0].GetMgoSession()
 
 				masterMgoSession = nil // not use mgo pool
@@ -259,7 +313,7 @@ func Init(
 		} else {
 			// others will be false
 			go func() {
-				workers[myid].InitWorker(int(myid), mongo_server, false, _profile, _total, masterMgoSession) // just use array index as worker id, worker will NOT start running immediately
+				workers[myid].InitWorker(int(myid), mongo_server, false, _profile, _total, dial_info, masterMgoSession) // just use array index as worker id, worker will NOT start running immediately
 				sg.Done()                                                                                    // I done
 				if !silent {
 					log.Println("worker ", myid, " initialization done, and wait for others")

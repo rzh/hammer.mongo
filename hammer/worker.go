@@ -112,7 +112,14 @@ func (w *MongoWorker) Run(c <-chan int, t <-chan time.Time) {
 	// go f() // double aggressive doesn't help with throughtput, just increase wait-for-mutex time
 }
 
-func (w *MongoWorker) InitWorker(i int, _server string, _initdb bool, _profile string, _total int64, masterMgoSession *mgo.Session) {
+func (w *MongoWorker) InitWorker(
+	i int,
+	_server string,
+	_initdb bool,
+	_profile string,
+	_total int64,
+	_dial_info mgo.DialInfo,
+	masterMgoSession *mgo.Session) {
 	w.id = i
 
 	w.profile = profiles.GetProfile(strings.ToUpper(_profile))
@@ -131,12 +138,8 @@ func (w *MongoWorker) InitWorker(i int, _server string, _initdb bool, _profile s
 	// always dial here
 	if true {
 		// w.session, err = mgo.Dial(w.server)
-		info := mgo.DialInfo{
-			FailFast: true,
-			Addrs:    strings.Split(w.server, ","),
-		}
 
-		w.session, err = mgo.DialWithInfo(&info)
+		w.session, err = mgo.DialWithInfo(&_dial_info)
 	} else {
 		w.session = masterMgoSession.Copy()
 		// log.Println("initiate worker ", w.id, " via mgo.Copy")
