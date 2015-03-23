@@ -28,7 +28,7 @@ a sample run:
 GOPATH=\`pwd\`:$GOPATH go run hammer.mongo.go -monitor 1 -max -worker 9 -server localhost:27017 -max -initdb=true -profile=insert
 </pre>
 
-use the binary 
+use the binary
 <pre>
 ./hammer.linux -monitor 1 -server ec2-107-21-153-123.compute-1.amazonaws.com:27017 -thread 4 -max -initdb=false -max=true -profile=insert -worker 32 -total=100000
 ./hammer.linux -monitor 1 -server ec2-107-21-153-123.compute-1.amazonaws.com:27017 -thread 4 -max -initdb=false -max=true -profile=singleQuery -worker 32 -total=200000
@@ -51,12 +51,12 @@ It will download the binaries, and necessary scripts. No need to install Go. Lin
 ./simple_insert.sh
 </pre>
 
-You can also use go get to install hammer.mongo, run following command 
+You can also use go get to install hammer.mongo, run following command
 <pre>
   go install github.com/rzh/hammer.mongo
 </pre>
 
-hammer.mongo shall be installed into your <i><b>$GOPATH/bin</b></i>, make sure your PATH is properly configured, you can simply issue hammer.mongo to run this. 
+hammer.mongo shall be installed into your <i><b>$GOPATH/bin</b></i>, make sure your PATH is properly configured, you can simply issue hammer.mongo to run this.
 
 # Releases:
 Release are made and binaries for Linux/amd64 and Darwin/amd64 will be part of the binary package, you can get it from
@@ -83,3 +83,5 @@ hammer.macos
 </pre>
 - To run from source, simple run <b><i>go run hammer.mongo.go ...</i></b> with all the options.
 
+#instructions for using SSL
+to hammer against an SSL enabled server, set the `ssl, sslCAFile, sslPEMKeyFile` options as you would any mongo shell. There is also an included server certificate for testing. You can set up an SSL enabled mongod with  `mongod --sslMode requireSSL --sslPEMKeyFile certs/key.pem`. To run hammer against this test server, only the `-ssl=true` flag needs to be specified, and it will default to using the provided PEM files.
