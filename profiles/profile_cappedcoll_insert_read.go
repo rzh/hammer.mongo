@@ -130,11 +130,4 @@ func init() {
 	registerProfile("CAPPED_COLL_INSERT_READ", func() Profile {
 		return Profile(_cappedCollInsertReadProfile) // use the same instance
 	})
-
-	s := os.Getenv("HT_INDEX_GROUP")
-	if s == "" {
-		_cappedCollInsertReadProfile.indexGroup = false
-	} else {
-		_cappedCollInsertReadProfile.indexGroup = true
-	}
 }
