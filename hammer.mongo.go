@@ -29,6 +29,9 @@ var (
 	totaltime int64
 	warmup    int64
 	worker    int
+	ssl       bool
+	sslca     string // PEM file for the CA
+	sslkey    string // PEM key file for the client
 )
 
 type HammerConfig struct {
@@ -47,6 +50,9 @@ type HammerConfig struct {
 		Totaltime int64
 		Warmup    int64
 		Worker    int
+		Ssl       bool
+		SslCa     string
+		SslKey    string
 	}
 }
 
@@ -67,6 +73,9 @@ func parseConfig(cfgFile string) {
 	cfg.Config.Totaltime = 0
 	cfg.Config.Warmup = 0
 	cfg.Config.Worker = 10
+	cfg.Config.Ssl = false
+	cfg.Config.SslCa = "certs/ca.pem"
+	cfg.Config.SslKey = "certs/key.pem"
 
 	// to parse config file
 	err := gcfg.ReadFileInto(&cfg, cfgFile)
@@ -89,6 +98,9 @@ func parseConfig(cfgFile string) {
 	totaltime = cfg.Config.Totaltime
 	warmup = cfg.Config.Warmup
 	worker = cfg.Config.Worker
+	ssl = cfg.Config.Ssl
+	sslca = cfg.Config.SslCa
+	sslkey = cfg.Config.SslKey
 
 	log.Printf("Configuration file %s parsed, runn with following configurations\n")
 
@@ -114,9 +126,11 @@ func init() {
 	flag.Int64Var(&total, "total", 0, "Total request to be sent, default to unlimited (0)")
 	flag.Int64Var(&warmup, "warmup", 0, "To set how long (seconds) for warmup DB")
 	flag.IntVar(&worker, "worker", 10, "Number of workers, every worker will have two connections to mongodb")
-
 	flag.Int64Var(&totaltime, "totaltime", 0, "To set how long (seconds) to run the test")
 	flag.StringVar(&config, "config", "", "To use config file")
+	flag.BoolVar(&ssl, "ssl", false, "enable SSL")
+	flag.StringVar(&sslca, "sslCAFile", "certs/ca.pem", "PEM file for CA")
+	flag.StringVar(&sslkey, "sslPEMKeyFile", "certs/key.pem", "Key file for server")
 	// flag.StringVar(&gen,       "gen",       "",                "To generate a sample configuration file")
 }
 
@@ -134,7 +148,7 @@ func main() {
 		runtime.GOMAXPROCS(NCPU + 2) // two more thread than CPU core, need more research on best value TODO
 	}
 
-	hammer.Init(worker, monitor, server, initdb, profile, total, warmup, totaltime, quiet, run)
+	hammer.Init(worker, monitor, server, initdb, profile, total, warmup, totaltime, quiet, run, ssl, sslca, sslkey)
 
 	if max {
 		hammer.Start(0)

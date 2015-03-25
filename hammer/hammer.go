@@ -3,11 +3,16 @@ package hammer
 import (
 	"fmt"
 
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -69,7 +74,7 @@ func Start(rps int64) {
 			workers[i].Run(control_channel, nil)
 		}
 	} else {
-		panic("why I am here, RPS shall be greater than 0")
+		log.Fatal("why I am here, RPS shall be greater than 0")
 	}
 
 	// fmt.Println(" ")
@@ -182,7 +187,10 @@ func Init(
 	_warmup int64,
 	_total_time int64,
 	_quiet bool,
-	_run_id string) {
+	_run_id string,
+	_ssl bool,
+	_ssl_ca string,
+	_ssl_key string) {
 	/**
 		- init core data structure
 		- init all workers if specified.
@@ -190,7 +198,7 @@ func Init(
 
 	if initialized {
 		// should never init this twice
-		panic("Initialized Hammer Twice!!")
+		log.Fatal("Initialized Hammer Twice!!")
 	}
 
 	if _run_id != "" {
@@ -214,11 +222,71 @@ func Init(
 		fmt.Print("Init workers...")
 	}
 
+	var dialInfo mgo.DialInfo
+
+	if _ssl {
+		// To enable SSL on the mgo driver is not as straightforward as other
+		// drivers. As of mgo v2, you need to:
+		// 1. create a tlsConfig
+		// 2. add CA and server certificates to a tlsConfig
+		// 3. create a custom dial function that wraps around tls.Dial
+		// 4. add the custom dial function to an instance of mgo.DialInfo
+		key_data, err1 := ioutil.ReadFile(_ssl_key)
+		ca_data, err2 := ioutil.ReadFile(_ssl_ca)
+
+		if err1 != nil {
+			log.Fatal("could not read Server Key file")
+		}
+
+		if err2 != nil {
+			log.Fatal("could not read CA Certificate file")
+		}
+
+		//
+		tlsConfig := &tls.Config{
+			RootCAs:            x509.NewCertPool(),
+			ServerName:         "",
+			InsecureSkipVerify: true,
+			ClientAuth:         tls.RequireAnyClientCert,
+		}
+		ok1 := tlsConfig.RootCAs.AppendCertsFromPEM(key_data)
+		ok2 := tlsConfig.RootCAs.AppendCertsFromPEM(ca_data)
+
+		if !ok1 {
+			log.Fatal("server key is not in PEM format")
+		}
+
+		if !ok2 {
+			log.Fatal("CA Certificate is not in PEM format")
+		}
+
+		dial := func(addr net.Addr) (net.Conn, error) {
+			conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
+			if err != nil {
+				log.Println("tls.Dial(%s) failed with %v", addr, err)
+				return nil, err
+			}
+			return conn, nil
+		}
+
+		dialInfo = mgo.DialInfo{
+			FailFast: true,
+			Addrs:    strings.Split(_server, ","),
+			Dial:     dial,
+		}
+
+	} else {
+		dialInfo = mgo.DialInfo{
+			FailFast: true,
+			Addrs:    strings.Split(_server, ","),
+		}
+	}
+
 	initialized = true
 	workers = make([]MongoWorker, _num_of_workers)
 	profiles.InitProfile(_num_of_workers)
 
-	stats.HammerMongoStats.InitMongo_Monitor(mongo_server)
+	stats.HammerMongoStats.InitMongo_Monitor(mongo_server, dialInfo)
 	stats.SetSilent(_quiet)             // pass -quiet flag to stats
 	stats.SetNumWorker(_num_of_workers) // make sure stats know how many workers is there
 
@@ -246,7 +314,7 @@ func Init(
 					log.Println("worker ", i, " initialization started")
 				}
 				_initdb = false
-				workers[myid].InitWorker(int(myid), mongo_server, _initdb_local, _profile, _total, nil) // just use array index as worker id, worker will NOT start running immediately
+				workers[myid].InitWorker(int(myid), mongo_server, _initdb_local, _profile, _total, dialInfo, nil) // just use array index as worker id, worker will NOT start running immediately
 				masterMgoSession = workers[0].GetMgoSession()
 
 				masterMgoSession = nil // not use mgo pool
@@ -259,8 +327,8 @@ func Init(
 		} else {
 			// others will be false
 			go func() {
-				workers[myid].InitWorker(int(myid), mongo_server, false, _profile, _total, masterMgoSession) // just use array index as worker id, worker will NOT start running immediately
-				sg.Done()                                                                                    // I done
+				workers[myid].InitWorker(int(myid), mongo_server, false, _profile, _total, dialInfo, masterMgoSession) // just use array index as worker id, worker will NOT start running immediately
+				sg.Done()                                                                                              // I done
 				if !silent {
 					log.Println("worker ", myid, " initialization done, and wait for others")
 				}

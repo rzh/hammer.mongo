@@ -3,7 +3,6 @@ package stats
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -195,7 +194,7 @@ type DbStats struct {
 	IndexFileSize string `bson:"fileSize"` // index file size
 }
 
-func (m *MongoStats) InitMongo_Monitor(_server string) {
+func (m *MongoStats) InitMongo_Monitor(_server string, _dial_info mgo.DialInfo) {
 	s := os.Getenv("HT_DB_NAME")
 
 	if s == "" {
@@ -208,12 +207,7 @@ func (m *MongoStats) InitMongo_Monitor(_server string) {
 	m.prev_m = ServerStatus{}
 	m._inited = false
 
-	info := mgo.DialInfo{
-		FailFast: true,
-		Addrs:    strings.Split(_server, ","),
-	}
-
-	session, err := mgo.DialWithInfo(&info)
+	session, err := mgo.DialWithInfo(&_dial_info)
 
 	if err != nil {
 		panic(err)

@@ -6,7 +6,7 @@ echo "bootstrap hammer.time"
 
 if [ -f hammer.tar.gz ]; then
     rm hammer.tar.gz
-fi 
+fi
 
 if [ ! -d bin ]; then
     mkdir bin
@@ -25,6 +25,13 @@ tar zxvf hammer.tar.gz
 mv hammer.linux bin
 mv hammer.macos bin
 rm hammer.tar.gz
+
+# get server and CA certificates for SSL
+mkdir certs
+wget https://raw.githubusercontent.com/rzh/hammer.mongo/master/certs/ca.pem -O certs/ca.pem
+wget https://raw.githubusercontent.com/rzh/hammer.mongo/master/certs/key.pem -O certs/key.pem
+chmod 400 certs/ca.pem
+chmod 400 certs/key.pem
 
 # download scripts
 for f in "${SCRIPTS[@]}"
