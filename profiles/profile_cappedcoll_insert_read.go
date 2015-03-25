@@ -2,7 +2,6 @@ package profiles
 
 import (
 	"log"
-	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
