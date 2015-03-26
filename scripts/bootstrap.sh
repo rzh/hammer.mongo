@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-VERSION="v0.1.6"
+VERSION="v0.1-latest"
 SCRIPTS=(bulk_insert.bash simple_insert.sh config.sh contended_update.sh single_query.sh)
 echo "bootstrap hammer.time"
 
