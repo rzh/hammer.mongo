@@ -2,7 +2,9 @@ package profiles
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"sync"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -13,8 +15,9 @@ import (
 */
 
 type query_single_doc_Profile struct {
-	MaxUID int64
-	USE_ID bool
+	MaxUID      int64
+	USE_ID      bool
+	initProfile sync.Once
 
 	session *mgo.Session
 }
@@ -23,17 +26,6 @@ var _query_single_doc_Profile query_single_doc_Profile
 
 func (i query_single_doc_Profile) SendNext(s *mgo.Session, worker_id int) error {
 	c := s.DB(getDBName(default_db_name_prefix)).C(getCollectionName(default_col_name_prefix))
-
-	if _query_single_doc_Profile.MaxUID == 0 {
-		// to find out how many records we have
-		n, err := c.Count()
-
-		if err != nil {
-			panic("cannot count collection")
-		}
-		_query_single_doc_Profile.MaxUID = int64(n)
-		fmt.Println("Total doc", n)
-	}
 
 	_u := rands[worker_id].Int63n(_query_single_doc_Profile.MaxUID) // to find a random person
 	//_p := SmallDoc{}
@@ -48,14 +40,62 @@ func (i query_single_doc_Profile) SendNext(s *mgo.Session, worker_id int) error 
 	}
 
 	if err != nil {
-		fmt.Println(err, "uid is ", _u)
+		fmt.Println("Error: ", err, "user [", _u, "] in collection", c.FullName)
 	}
 	return err
+}
+
+func initSingleQuery(s *mgo.Session) {
+	_query_single_doc_Profile.MaxUID = -1
+	// to find out how many records we have
+	var dbName, colName string
+
+	for i := 1; i <= _multi_db; i++ {
+		dbName = default_db_name_prefix
+
+		if _multi_db != 1 {
+			dbName = fmt.Sprint(default_db_name_prefix, i)
+		}
+		for j := 1; j <= _multi_col; j++ {
+			colName = default_col_name_prefix
+
+			if _multi_col != 1 {
+				colName = fmt.Sprint(default_col_name_prefix, j)
+			}
+
+			c := s.DB(dbName).C(colName)
+
+			n, err := c.Count()
+
+			if err != nil {
+				panic("cannot count collection")
+			}
+
+			if _query_single_doc_Profile.MaxUID > int64(n) || _query_single_doc_Profile.MaxUID < 0 {
+				// found out the smalles collection
+				// here we assume most collection will be similar or equal size
+				// which shall be true based on test design
+				// TODO: enhance this
+				_query_single_doc_Profile.MaxUID = int64(n)
+			}
+		}
+	}
+
+	if _query_single_doc_Profile.MaxUID == 0 {
+		log.Fatalln("Error: total document to be queries is 0!")
+		os.Exit(1)
+	}
+	log.Println("Total document to be queried is", _query_single_doc_Profile.MaxUID)
 }
 
 func (i query_single_doc_Profile) SetupTest(s *mgo.Session, _initdb bool) error {
 	i.session = s
 
+	f := func() {
+		initSingleQuery(s)
+	}
+
+	_query_single_doc_Profile.initProfile.Do(f)
 	return nil
 }
 
