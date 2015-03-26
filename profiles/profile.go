@@ -230,7 +230,8 @@ func queryMongo(collection *mgo.Collection, query interface{}, queryLimit int, b
 
 func panicOnError(err error) {
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
+		os.Exit(1)
 	}
 }
 
