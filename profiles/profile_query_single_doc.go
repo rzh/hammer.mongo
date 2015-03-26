@@ -36,14 +36,15 @@ func (i query_single_doc_Profile) SendNext(s *mgo.Session, worker_id int) error 
 	}
 
 	_u := rands[worker_id].Int63n(_query_single_doc_Profile.MaxUID) // to find a random person
-	_p := SmallDoc{}
+	//_p := SmallDoc{}
+	var result interface{}
 
 	var err error
 	if i.USE_ID {
-		err = c.Find(bson.M{"_id": _u}).Limit(1).Explain(&_p)
+		err = c.Find(bson.M{"_id": _u}).One(&result) //.Explain(&_p)
 	} else {
 		// query to not use _ID
-		err = c.Find(bson.M{"name": _u}).Limit(1).Explain(&_p)
+		err = c.Find(bson.M{"name": _u}).One(&result) //.Explain(&_p)
 	}
 
 	if err != nil {
