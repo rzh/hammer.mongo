@@ -270,6 +270,7 @@ func Init(
 		}
 
 		dialInfo = mgo.DialInfo{
+			Timeout:  10 * time.Second,
 			FailFast: true,
 			Addrs:    strings.Split(_server, ","),
 			Dial:     dial,
@@ -277,6 +278,7 @@ func Init(
 
 	} else {
 		dialInfo = mgo.DialInfo{
+			Timeout:  10 * time.Second,
 			FailFast: true,
 			Addrs:    strings.Split(_server, ","),
 		}
