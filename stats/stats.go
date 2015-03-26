@@ -180,7 +180,7 @@ func (c *Stats) monitorHammer() {
 			//"p35\t",
 			//"p15\t",
 			// " pending\t", backlog,
-			//" err\t", c.totalErr,
+			"err\t",
 			//"|", fmt.Sprintf("%2.2f%s", (float64(c.totalErr)*100.0/float64(c.totalErr+c.totalResp)), "%"),
 			//" slow\t", fmt.Sprintf("%2.2f%s", (float64(c.totalResSlow)*100.0/float64(c.totalResp)), "%"),
 			"Last avg(ms)\t",
@@ -203,6 +203,7 @@ func (c *Stats) monitorHammer() {
 			//fmt.Sprintf("%6.2f\t", p50/1.0e6),
 			//fmt.Sprintf("%6.2f\t", p35/1.0e6),
 			//fmt.Sprintf("%6.2f\t", p15/1.0e6),
+			fmt.Sprintf("%4d\t", c.totalErr),
 			fmt.Sprintf("%6.3f\t", avgLastT*1000),
 			fmt.Sprintf("%d\t", lastSend),
 			s_print)
