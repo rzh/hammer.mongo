@@ -36,6 +36,8 @@ var Payload4 [120]byte
 var Payload5 [120]byte
 var Payload6 [120]byte
 
+var stageInsert bool
+
 type insertProfile struct {
 	UID int64
 
@@ -70,17 +72,50 @@ func (i insertProfile) SendNext(s *mgo.Session, worker_id int) error {
 		"payload5": &Payload5,
 		"payload6": &Payload6}
 
-	if _profile_use_legacy_write {
-		err = c.Insert(doc)
+	if stageInsert {
+		var dbName, colName string
+
+		for i := 1; i <= _multi_db; i++ { // start from 1
+			if _multi_db == 1 {
+				dbName = default_db_name_prefix
+			} else {
+				dbName = default_db_name_prefix + string(i)
+			}
+
+			for j := 0; j < _multi_col; j++ {
+				if _multi_col == 1 {
+					dbName = default_col_name_prefix
+				} else {
+					dbName = default_col_name_prefix + string(j)
+				}
+				c = s.DB(dbName).C(colName)
+
+				if _profile_use_legacy_write {
+					err = c.Insert(doc)
+				} else {
+					var results interface{}
+
+					err = c.Database.Run(bson.D{{"insert", c.Name},
+						{"documents", []bson.M{doc}}}, results)
+				}
+
+				panicOnError(err)
+			}
+		}
+
 	} else {
-		var results interface{}
+		if _profile_use_legacy_write {
+			err = c.Insert(doc)
+		} else {
+			var results interface{}
 
-		err = c.Database.Run(bson.D{{"insert", c.Name},
-			{"documents", []bson.M{doc}}}, results)
+			err = c.Database.Run(bson.D{{"insert", c.Name},
+				{"documents", []bson.M{doc}}}, results)
+		}
+
+		panicOnError(err)
 	}
-
-	panicOnError(err)
-	return err
+	return nil // never come here when there is error
 }
 
 func InitSimpleTest(session *mgo.Session, _initdb bool) {
@@ -149,6 +184,13 @@ func init() {
 		_insertProfile.indexGroup = false
 	} else {
 		_insertProfile.indexGroup = true
+	}
+
+	s = os.Getenv("HT_STAGE_INSERT")
+	if s == "" {
+		stageInsert = false
+	} else {
+		stageInsert = true
 	}
 
 	// fmt.Println("Done Init INSERT profile")
