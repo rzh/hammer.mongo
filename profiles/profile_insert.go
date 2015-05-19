@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -185,7 +186,7 @@ func init() {
 	})
 
 	s := os.Getenv("HT_INDEX_GROUP")
-	if s == "" {
+	if s == "" || strings.ToLower(s) == "no" {
 		_insertProfile.indexGroup = false
 	} else {
 		_insertProfile.indexGroup = true
