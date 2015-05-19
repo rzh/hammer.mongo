@@ -26,5 +26,9 @@ export HT_SERVER_URL="localhost:27017"
 
 source config.sh
 
+# special environment variable for the profile
+# to control string field length, default is 256
+export HT_INSERT_PAYLOAD_STRING_LENGTH=256
+
 $BINARY -profile=INSERT -max -worker $HT_CMD_WORKERS -server $HT_SERVER_URL -monitor $HT_CMD_MONITOR_INTERVAL -total $HT_CMD_TOTAL_OPS -totaltime $HT_CMD_TOTAL_TIME
 

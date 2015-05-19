@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -16,16 +17,10 @@ import (
 */
 
 type Person struct {
-	Name     int64
-	UID      bson.ObjectId `bson:"_id,omitempty"`
-	Group    int
-	Payload  [40]int
-	Payload1 [120]byte
-	Payload2 [120]byte
-	Payload3 [120]byte
-	Payload4 [120]byte
-	Payload5 [120]byte
-	Payload6 [120]byte
+	Name    int64
+	UID     bson.ObjectId `bson:"_id,omitempty"`
+	Group   int
+	Payload string
 }
 
 var Payload [40]int
@@ -49,6 +44,7 @@ type insertProfile struct {
 }
 
 var _insertProfile insertProfile
+var _payload_string_lens int
 
 // func Int2ObjId(i int64) string {
 // 	// return string represenation of UID
@@ -61,16 +57,11 @@ func (i insertProfile) SendNext(s *mgo.Session, worker_id int) error {
 	_u := atomic.AddInt64(&_insertProfile.UID, 1) // to make this unique
 
 	doc := bson.M{
-		"_id":      _u,
-		"name":     _u,
-		"group":    rands[worker_id].Int(),
-		"payload":  &Payload,
-		"payload1": &Payload1,
-		"payload2": &Payload2,
-		"payload3": &Payload3,
-		"payload4": &Payload4,
-		"payload5": &Payload5,
-		"payload6": &Payload6}
+		"_id":     _u,
+		"name":    _u,
+		"group":   rands[worker_id].Int(),
+		"payload": randomString(_payload_string_lens),
+	}
 
 	if stageInsert {
 		var dbName, colName string
@@ -207,5 +198,15 @@ func init() {
 		stageInsert = true
 	}
 
-	// fmt.Println("Done Init INSERT profile")
+	s = os.Getenv("HT_INSERT_PAYLOAD_STRING_LENGTH")
+	if s == "" {
+		_payload_string_lens = 256
+	} else {
+		l, err := strconv.ParseInt(s, 10, 64)
+
+		if err != nil {
+			log.Fatalln("Cannot parse environment variable HT_INSERT_PAYLOAD_STRING_LENGTH, got ", s, " expecting an integer")
+		}
+		_payload_string_lens = int(l)
+	}
 }
