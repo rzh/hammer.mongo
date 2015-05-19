@@ -1,7 +1,9 @@
 package profiles
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"os"
@@ -185,14 +187,62 @@ func getCollectionName(prefix string) string {
 	}
 }
 
-func randomString(n int) string {
-	x := make([]byte, n)
+type randomDataMaker struct {
+	src rand.Source
+}
 
-	for i := 0; i < n; i++ {
-		x[i] = byte(alpha_numeric_chars_with_space[rand.Intn(alpha_numeric_chars_with_space_len)])
+func (r *randomDataMaker) Read(p []byte) {
+	todo := len(p)
+	offset := 0
+	for {
+		val := int64(r.src.Int63())
+		for i := 0; i < 8; i++ {
+			p[offset] = byte(val & 0xff)
+			todo--
+			if todo == 0 {
+				return
+			}
+			offset++
+			val >>= 8
+		}
 	}
 
-	return string(x)
+	panic("unreachable")
+}
+
+type RandomDataMaker struct {
+	src rand.Source
+}
+
+func (r *RandomDataMaker) Read(p []byte) (n int, err error) {
+	todo := len(p)
+	offset := 0
+	for {
+		val := int64(r.src.Int63())
+		for i := 0; i < 8; i++ {
+			p[offset] = byte(val & 0xff)
+			todo--
+			if todo == 0 {
+				return len(p), nil
+			}
+			offset++
+			val >>= 8
+		}
+	}
+
+	panic("unreachable")
+}
+
+var randomSrc = RandomDataMaker{rand.NewSource(89743435145010)}
+
+func randomString(n int) string {
+	x := bytes.NewBuffer(nil)
+
+	_, err := io.CopyN(x, &randomSrc, int64(n))
+	if err != nil {
+		log.Fatalf("Error copying at %v: %v", n, err)
+	}
+	return string(x.Bytes())
 }
 
 func randomWord(n int) string {
