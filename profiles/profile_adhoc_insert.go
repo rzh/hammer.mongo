@@ -53,7 +53,7 @@ func (i adhocInsertProfile) SendNext(s *mgo.Session, worker_id int) error {
 
 	err := c.Insert(bson.M{
 		"_id":   _u,
-		"name":  randomString(20),
+		"name":  randomString(20, worker_id),
 		"group": rands[worker_id].Int(),
 		//"simpleArray": randomArrayInt(20),
 		//"payload":     &Payload,

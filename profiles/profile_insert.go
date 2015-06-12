@@ -61,7 +61,7 @@ func (i insertProfile) SendNext(s *mgo.Session, worker_id int) error {
 		"_id":     _u,
 		"name":    _u,
 		"group":   rands[worker_id].Int(),
-		"payload": randomString(_payload_string_lens),
+		"payload": randomString(_payload_string_lens, worker_id),
 	}
 
 	if stageInsert {

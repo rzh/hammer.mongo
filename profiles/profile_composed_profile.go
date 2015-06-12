@@ -233,15 +233,15 @@ func randomPayloadBuffer() {
 	}
 }
 
-func initStreamNames() {
+func initStreamNames(_worker_id int) {
 	for i := 0; i < len(streamNames); i++ {
-		streamNames[i] = randomString(20) // FIXME: random lens to be used
+		streamNames[i] = randomString(20, _worker_id) // FIXME: random lens to be used
 	}
 }
 
-func initTagNames() {
+func initTagNames(_worker_id int) {
 	for i := 0; i < len(tagNames); i++ {
-		tagNames[i] = randomString(100) // FIXME: random lens to be used
+		tagNames[i] = randomString(100, _worker_id) // FIXME: random lens to be used
 	}
 }
 
@@ -626,6 +626,8 @@ func (c *composedProfile) readConfigFile() {
 		fmt.Printf("\nFailed to read qa408.conf: %s\nPlease make sure you have qa408.conf at current directory, you can copy from qa408.conf.template\n\n", err)
 		os.Exit(1)
 	}
+	initStreamNames(0)
+	initTagNames(0)
 
 	// fmt.Printf("%f\n %f\n", c.cfg.Profile.AddDoc, c.cfg.Profile.AddDoc)
 
@@ -669,8 +671,6 @@ func init() {
 	atomic.StoreInt32(&_composedProfile.numWorker, 0)
 
 	randomPayloadBuffer()
-	initStreamNames()
-	initTagNames()
 
 	_composedProfile.syncWG.Add(1) // to make this for the first worker
 

@@ -26,13 +26,16 @@ type Profile interface {
 }
 
 var rands []*rand.Rand
+var randomSrc []RandomDataMaker
 
 func InitProfile(_num_of_workers int) {
 	log.Println("Init profiles")
 	rands = make([]*rand.Rand, _num_of_workers, _num_of_workers)
+	randomSrc = make([]RandomDataMaker, _num_of_workers, _num_of_workers)
 
 	for i := 0; i < _num_of_workers; i++ {
 		rands[i] = rand.New(rand.NewSource(int64(time.Now().Nanosecond() + i)))
+		randomSrc[i] = RandomDataMaker{rand.NewSource(int64(time.Now().Nanosecond() + i))}
 	}
 }
 
@@ -233,12 +236,10 @@ func (r *RandomDataMaker) Read(p []byte) (n int, err error) {
 	panic("unreachable")
 }
 
-var randomSrc = RandomDataMaker{rand.NewSource(89743435145010)}
-
-func randomString(n int) string {
+func randomString(n int, _worker int) string {
 	x := bytes.NewBuffer(nil)
 
-	_, err := io.CopyN(x, &randomSrc, int64(n))
+	_, err := io.CopyN(x, &randomSrc[_worker], int64(n))
 	if err != nil {
 		log.Fatalf("Error copying at %v: %v", n, err)
 	}

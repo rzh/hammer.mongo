@@ -255,7 +255,7 @@ func (c *qa492Profile) initStreamNames() {
 
 func (c *qa492Profile) initTagNames() {
 	for i := 0; i < len(c.tagNames); i++ {
-		_qa492Profile.tagNames[i] = randomString(1 + rand.Intn(99)) // from 1 to 100, Ok to use command rand
+		_qa492Profile.tagNames[i] = randomString(1+rand.Intn(99), 0) // from 1 to 100, Ok to use command rand
 	}
 }
 
