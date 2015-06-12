@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # how many DB to be insert into
+# for capped profile, this should always be one
 export HT_MULTI_DB=1
 
 # how many collections per DB
+# for capped profile, this should always be one
 export HT_MULTI_COLLECTION=1
 
 # number of workers

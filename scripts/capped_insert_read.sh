@@ -4,9 +4,11 @@
 export HT_MULTI_DB=1
 
 # how many collections per DB
+# for capped profile, this should always be one
 export HT_MULTI_COLLECTION=1
 
 # number of workers
+# for capped profile, this should always be one
 export HT_CMD_WORKERS=16
 
 # report stats every N second
