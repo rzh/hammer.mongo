@@ -5,8 +5,7 @@
 export HT_MULTI_DB=1
 
 # how many collections per DB
-# for capped profile, this should always be one
-export HT_MULTI_COLLECTION=1
+export HT_MULTI_COLLECTION=16
 
 # number of workers
 export HT_CMD_WORKERS=16
