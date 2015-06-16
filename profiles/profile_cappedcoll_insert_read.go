@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -17,7 +18,7 @@ import (
 type cappedCollInsertReadProfile struct {
 	UID int64
 
-	indexGroup bool
+	indexTTL time.Duration
 
 	initProfile sync.Once
 
@@ -78,10 +79,6 @@ func initCappedInsertReadTest(session *mgo.Session, _initdb bool) {
 	ci.MaxBytes = 1000000000
 
 	log.Println(". Init DB, drop collections")
-	coll := session.DB(default_db_name_prefix).C(default_col_name_prefix)
-	coll.DropCollection()
-	coll.Create(ci)
-	ensureIndexKeysHelper(coll)
 
 	for i := 1; i <= _multi_db; i++ {
 		for j := 1; j <= _multi_col; j++ {
@@ -95,12 +92,17 @@ func initCappedInsertReadTest(session *mgo.Session, _initdb bool) {
 }
 
 func ensureIndexKeysHelper(collection *mgo.Collection) {
+	indexGroup := mgo.Index{
+		Key:         []string{"group"},
+		ExpireAfter: _cappedCollInsertProfile.indexTTL,
+	}
+
 	err := collection.EnsureIndexKey("name")
 	if err != nil {
 		panic(err)
 	}
 
-	err = collection.EnsureIndexKey("uid")
+	err = collection.EnsureIndex(indexGroup)
 	if err != nil {
 		panic(err)
 	}
@@ -130,4 +132,6 @@ func init() {
 	registerProfile("CAPPED_COLL_INSERT_READ", func() Profile {
 		return Profile(_cappedCollInsertReadProfile) // use the same instance
 	})
+
+	_cappedCollInsertProfile.indexTTL = time.Duration(getOSEnvFlagInt("HT_INDEX_TTL", 0)) * time.Second
 }
