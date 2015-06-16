@@ -75,10 +75,12 @@ func initCappedTest(session *mgo.Session, _initdb bool) {
 	session.DB(default_db_name_prefix).C(default_col_name_prefix).DropCollection()
 	session.DB(default_db_name_prefix).C(default_col_name_prefix).Create(ci)
 
-	for i := 1; i < _multi_db; i++ {
-		for j := 1; j < _multi_col; j++ {
+	for i := 1; i <= _multi_db; i++ {
+		for j := 1; j <= _multi_col; j++ {
 			collection := session.DB(default_db_name_prefix + strconv.Itoa(i)).C(default_col_name_prefix + strconv.Itoa(j))
+			collection.DropCollection()
 			collection.Create(ci)
+
 			err := collection.EnsureIndexKey("name")
 			if err != nil {
 				panic(err)
@@ -90,7 +92,6 @@ func initCappedTest(session *mgo.Session, _initdb bool) {
 			}
 		}
 	}
-
 }
 
 func (i cappedCollInsertProfile) SetupTest(s *mgo.Session, _initdb bool) error {
