@@ -83,9 +83,10 @@ func initCappedInsertReadTest(session *mgo.Session, _initdb bool) {
 	coll.Create(ci)
 	ensureIndexKeysHelper(coll)
 
-	for i := 1; i < _multi_db; i++ {
-		for j := 1; j < _multi_col; j++ {
+	for i := 1; i <= _multi_db; i++ {
+		for j := 1; j <= _multi_col; j++ {
 			collection := session.DB(default_db_name_prefix + strconv.Itoa(i)).C(default_col_name_prefix + strconv.Itoa(j))
+			collection.DropCollection()
 			collection.Create(ci)
 			ensureIndexKeysHelper(collection)
 		}
