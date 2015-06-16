@@ -70,6 +70,7 @@ func (i insertSmallProfile) SetupTest(s *mgo.Session, _initdb bool) error {
 			for i := 1; i <= _multi_db; i++ {
 				for j := 1; j <= _multi_col; j++ {
 					c := s.DB(default_db_name_prefix + strconv.Itoa(i)).C(default_col_name_prefix + strconv.Itoa(j))
+
 					if __index_field_group {
 						c.EnsureIndexKey("group")
 					}
@@ -88,6 +89,8 @@ func (i insertSmallProfile) SetupTest(s *mgo.Session, _initdb bool) error {
 
 			for i := 1; i <= _multi_db; i++ {
 				for j := 1; j <= _multi_col; j++ {
+					c := s.DB(default_db_name_prefix + strconv.Itoa(i)).C(default_col_name_prefix + strconv.Itoa(j))
+
 					if __index_field_group {
 						c.EnsureIndexKey("group")
 					}

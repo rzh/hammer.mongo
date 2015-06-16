@@ -176,7 +176,7 @@ func init() {
 
 func getDBName(prefix string) string {
 	if _multi_db == 1 {
-		return fmt.Sprint(prefix)
+		return fmt.Sprint(prefix, 1)
 	} else {
 		return fmt.Sprint(prefix, rand.Intn(_multi_db)+1)
 	}
@@ -184,7 +184,7 @@ func getDBName(prefix string) string {
 
 func getCollectionName(prefix string) string {
 	if _multi_col == 1 {
-		return fmt.Sprint(prefix)
+		return fmt.Sprint(prefix, 1)
 	} else {
 		return fmt.Sprint(prefix, rand.Intn(_multi_col)+1)
 	}

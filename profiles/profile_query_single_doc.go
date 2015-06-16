@@ -51,17 +51,10 @@ func initSingleQuery(s *mgo.Session) {
 	var dbName, colName string
 
 	for i := 1; i <= _multi_db; i++ {
-		dbName = default_db_name_prefix
+		dbName = fmt.Sprint(default_db_name_prefix, i)
 
-		if _multi_db != 1 {
-			dbName = fmt.Sprint(default_db_name_prefix, i)
-		}
 		for j := 1; j <= _multi_col; j++ {
-			colName = default_col_name_prefix
-
-			if _multi_col != 1 {
-				colName = fmt.Sprint(default_col_name_prefix, j)
-			}
+			colName = fmt.Sprint(default_col_name_prefix, j)
 
 			c := s.DB(dbName).C(colName)
 

@@ -61,11 +61,11 @@ func (i bulkInsertProfile) SetupTest(s *mgo.Session, _initdb bool) error {
 	i.session = s
 
 	f := func() {
-		_initdb = false
+		_initdb = false // disable initdb
 		if _initdb {
 			_bulkInsertProfile.MaxUID = 0
-			for i := 1; i < _multi_db; i++ {
-				for j := 1; j < _multi_col; j++ {
+			for i := 1; i <= _multi_db; i++ {
+				for j := 1; j <= _multi_col; j++ {
 					_ = s.DB(default_db_name_prefix + strconv.Itoa(i)).C(default_col_name_prefix + strconv.Itoa(j))
 					if _bulkInsertProfile.indexGroup {
 						// c.EnsureIndexKey("group")
@@ -85,8 +85,9 @@ func (i bulkInsertProfile) SetupTest(s *mgo.Session, _initdb bool) error {
 				panic("cannot count collection")
 			}
 
-			for i := 1; i < _multi_db; i++ {
-				for j := 1; j < _multi_col; j++ {
+			for i := 1; i <= _multi_db; i++ {
+				for j := 1; j <= _multi_col; j++ {
+					c := s.DB(default_db_name_prefix + strconv.Itoa(i)).C(default_col_name_prefix + strconv.Itoa(j))
 					if _bulkInsertProfile.indexGroup {
 						c.EnsureIndexKey("group")
 					}

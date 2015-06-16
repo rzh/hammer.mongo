@@ -68,18 +68,10 @@ func (i insertProfile) SendNext(s *mgo.Session, worker_id int) error {
 		var dbName, colName string
 
 		for i := 1; i <= _multi_db; i++ { // start from 1
-			if _multi_db == 1 {
-				dbName = default_db_name_prefix
-			} else {
-				dbName = fmt.Sprint(default_db_name_prefix, i)
-			}
+			dbName = fmt.Sprint(default_db_name_prefix, i)
 
 			for j := 1; j <= _multi_col; j++ {
-				if _multi_col == 1 {
-					colName = default_col_name_prefix
-				} else {
-					colName = fmt.Sprint(default_col_name_prefix, j)
-				}
+				colName = fmt.Sprint(default_col_name_prefix, j)
 
 				c = s.DB(dbName).C(colName)
 
@@ -130,17 +122,11 @@ func InitSimpleTest(session *mgo.Session, _initdb bool) {
 	var dbName, colName string
 
 	for i := 1; i <= _multi_db; i++ {
-		dbName = default_db_name_prefix
+		dbName = fmt.Sprint(default_db_name_prefix, i)
 
-		if _multi_db != 1 {
-			dbName = fmt.Sprint(default_db_name_prefix, i)
-		}
 		for j := 1; j <= _multi_col; j++ {
-			colName = default_col_name_prefix
+			colName = fmt.Sprint(default_col_name_prefix, j)
 
-			if _multi_col != 1 {
-				colName = fmt.Sprint(default_col_name_prefix, j)
-			}
 			fmt.Println("Create index for ", dbName+"."+colName)
 			collection := session.DB(dbName).C(colName)
 			err := collection.EnsureIndexKey("name")
