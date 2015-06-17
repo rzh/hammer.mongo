@@ -22,6 +22,11 @@ export HT_CMD_TOTAL_OPS=0
 # whether to use legacy Op, value shall be 0: use writeCmd or 1: use legacy op
 export HT_USE_LEGACY_WRITE=0
 
+# specify index TTL
+#   0 : no TTL
+#   N : N > 0 to specify TTL in seconds
+export HT_INDEX_TTL=0
+
 # server URL
 export HT_SERVER_URL="localhost:27017"
 

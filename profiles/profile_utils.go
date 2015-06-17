@@ -17,7 +17,7 @@ func getOSEnvFlagInt(v string, low int) int {
 		panicOnError(err)
 
 		if i < low {
-			log.Panicln("Got ", v, " $le 0, valure read ==>", i)
+			log.Panicln("Got ", v, " less than minimal allowed value ", low, ", failed to read env variable ", i)
 		}
 
 		return i
