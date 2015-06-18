@@ -21,6 +21,11 @@ export HT_CMD_TOTAL_OPS=0
 # whether to use legacy Op, value shall be 0: use writeCmd or 1: use legacy op
 export HT_USE_LEGACY_WRITE=0
 
+# specify index TTL
+#   0 : no TTL
+#   N : N > 0 to specify TTL in seconds
+export HT_INDEX_TTL=0
+
 # server URL
 export HT_SERVER_URL="localhost:27017"
 
@@ -29,10 +34,6 @@ source config.sh
 # special environment variable for the profile
 # to control string field length, default is 256
 export HT_INSERT_PAYLOAD_STRING_LENGTH=256
-
-# whether to create second index in field group
-# default value: "no"
-export HT_INDEX_GROUP=no
 
 $BINARY -profile=INSERT -max -worker $HT_CMD_WORKERS -server $HT_SERVER_URL -monitor $HT_CMD_MONITOR_INTERVAL -total $HT_CMD_TOTAL_OPS -totaltime $HT_CMD_TOTAL_TIME
 

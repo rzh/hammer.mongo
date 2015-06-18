@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -37,7 +37,7 @@ var stageInsert bool
 type insertProfile struct {
 	UID int64
 
-	indexGroup bool
+	indexTTL time.Duration
 
 	initProfile sync.Once
 
@@ -56,11 +56,12 @@ func (i insertProfile) SendNext(s *mgo.Session, worker_id int) error {
 	c := s.DB(getDBName(default_db_name_prefix)).C(getCollectionName(default_col_name_prefix))
 
 	_u := atomic.AddInt64(&_insertProfile.UID, 1) // to make this unique
+	_g := rands[worker_id].Int()
 
 	doc := bson.M{
-		"_id":     _u,
-		"name":    _u,
-		"group":   rands[worker_id].Int(),
+		"_id":   _u,
+		"group": _g,
+		//"group":   rands[worker_id].Int(),
 		"payload": randomString(_payload_string_lens, worker_id),
 	}
 
@@ -121,6 +122,11 @@ func InitSimpleTest(session *mgo.Session, _initdb bool) {
 
 	var dbName, colName string
 
+	indexGroup := mgo.Index{
+		Key:         []string{"group"},
+		ExpireAfter: _cappedCollInsertProfile.indexTTL,
+	}
+
 	for i := 1; i <= _multi_db; i++ {
 		dbName = fmt.Sprint(default_db_name_prefix, i)
 
@@ -129,13 +135,7 @@ func InitSimpleTest(session *mgo.Session, _initdb bool) {
 
 			fmt.Println("Create index for ", dbName+"."+colName)
 			collection := session.DB(dbName).C(colName)
-			err := collection.EnsureIndexKey("name")
-			if err != nil {
-				panic(err)
-			}
-
-			// err = collection.EnsureIndexKey("group")
-			err = collection.EnsureIndexKey("uid")
+			err := collection.EnsureIndex(indexGroup)
 			if err != nil {
 				panic(err)
 			}
@@ -171,14 +171,9 @@ func init() {
 		return Profile(_insertProfile) // use the same instance
 	})
 
-	s := os.Getenv("HT_INDEX_GROUP")
-	if s == "" || strings.ToLower(s) == "no" {
-		_insertProfile.indexGroup = false
-	} else {
-		_insertProfile.indexGroup = true
-	}
+	_insertProfile.indexTTL = time.Duration(getOSEnvFlagInt("HT_INDEX_TTL", 0)) * time.Second
 
-	s = os.Getenv("HT_STAGE_INSERT")
+	s := os.Getenv("HT_STAGE_INSERT")
 	if s == "" {
 		stageInsert = false
 	} else {
