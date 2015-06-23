@@ -132,9 +132,15 @@ func InitSimpleTest(session *mgo.Session, _initdb bool) {
 
 		for j := 1; j <= _multi_col; j++ {
 			colName = fmt.Sprint(default_col_name_prefix, j)
+			collection := session.DB(dbName).C(colName)
+
+			if _initdb {
+				fmt.Println("Drop collection ", dbName+"."+colName)
+				collection.DropCollection()
+				// may drop DB here as well TODO:
+			} // this will be moved to each profile. FIXME:
 
 			fmt.Println("Create index for ", dbName+"."+colName)
-			collection := session.DB(dbName).C(colName)
 			err := collection.EnsureIndex(indexGroup)
 			if err != nil {
 				panic(err)
