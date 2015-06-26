@@ -2,16 +2,17 @@ package hammer
 
 import (
 	"log"
+	"os"
 	"runtime/debug"
 	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
 
+	"gopkg.in/mgo.v2"
+
 	"github.com/rzh/hammer.mongo/profiles"
 	"github.com/rzh/hammer.mongo/stats"
-
-	"gopkg.in/mgo.v2"
 )
 
 var _uid int64 // global to control unique uid
@@ -99,6 +100,10 @@ func (w *MongoWorker) Run(c <-chan int, t <-chan time.Time) {
 					//stat_response_time += uint64(response_time)
 					//}
 				} else {
+					if exitOnError {
+						log.Fatalln(err)
+						os.Exit(1)
+					}
 					stats.HammerStats.RecordError(w.id)
 				}
 			}
