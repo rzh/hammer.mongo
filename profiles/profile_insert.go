@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,10 +19,11 @@ import (
 */
 
 type Person struct {
-	Name    int64
-	UID     bson.ObjectId `bson:"_id,omitempty"`
-	Group   int
-	Payload string
+	Name      int64
+	UID       bson.ObjectId `bson:"_id,omitempty"`
+	CreatedAt time.Time     `bson:"createdAt,omitempty"`
+	Group     int
+	Payload   string
 }
 
 var Payload [40]int
@@ -33,11 +35,13 @@ var Payload5 [120]byte
 var Payload6 [120]byte
 
 var stageInsert bool
+var currentTime time.Time // this will be updated every second
 
 type insertProfile struct {
 	UID int64
 
-	indexTTL time.Duration
+	indexTTL       time.Duration
+	secondaryIndex bool
 
 	initProfile sync.Once
 
@@ -57,12 +61,21 @@ func (i insertProfile) SendNext(s *mgo.Session, worker_id int) error {
 
 	_u := atomic.AddInt64(&_insertProfile.UID, 1) // to make this unique
 	_g := rands[worker_id].Int()
+	var doc bson.M
 
-	doc := bson.M{
-		"_id":   _u,
-		"group": _g,
-		//"group":   rands[worker_id].Int(),
-		"payload": randomString(_payload_string_lens, worker_id),
+	if i.indexTTL != 0 {
+		doc = bson.M{
+			"_id":       _u,
+			"group":     _g,
+			"createdAt": currentTime,
+			"payload":   randomString(_payload_string_lens, worker_id),
+		}
+	} else {
+		doc = bson.M{
+			"_id":     _u,
+			"group":   _g,
+			"payload": randomString(_payload_string_lens, worker_id),
+		}
 	}
 
 	if stageInsert {
@@ -123,8 +136,8 @@ func InitSimpleTest(session *mgo.Session, _initdb bool) {
 	var dbName, colName string
 
 	indexGroup := mgo.Index{
-		Key:         []string{"group"},
-		ExpireAfter: _cappedCollInsertProfile.indexTTL,
+		Key:         []string{"createdAt"},
+		ExpireAfter: _insertProfile.indexTTL,
 	}
 
 	for i := 1; i <= _multi_db; i++ {
@@ -143,7 +156,14 @@ func InitSimpleTest(session *mgo.Session, _initdb bool) {
 			fmt.Println("Create index for ", dbName+"."+colName)
 			err := collection.EnsureIndex(indexGroup)
 			if err != nil {
-				panic(err)
+				panicOnError(err)
+			}
+
+			if _insertProfile.secondaryIndex {
+				err = collection.EnsureIndexKey("group")
+				if err != nil {
+					panicOnError(err)
+				}
 			}
 		}
 	}
@@ -154,6 +174,13 @@ func (i insertProfile) SetupTest(s *mgo.Session, _initdb bool) error {
 
 	f := func() {
 		InitSimpleTest(s, _initdb)
+
+		go func() {
+			for true {
+				currentTime = time.Now()
+				time.Sleep(1 * time.Second)
+			}
+		}()
 	}
 
 	_insertProfile.initProfile.Do(f)
@@ -169,8 +196,6 @@ func (i insertProfile) CsvHeader() string {
 }
 
 func init() {
-	// fmt.Println("Init INSERT profile")
-
 	atomic.StoreInt64(&_insertProfile.UID, -1) // UID starts with 1
 
 	registerProfile("INSERT", func() Profile {
@@ -197,4 +222,15 @@ func init() {
 		}
 		_payload_string_lens = int(l)
 	}
+
+	s = strings.ToLower(os.Getenv("HT_SECONDARY_INDEX"))
+	if s == "" || s == "no" {
+		_insertProfile.secondaryIndex = false
+	} else if s == "yes" {
+		_insertProfile.secondaryIndex = true
+	} else {
+		log.Fatalln("Cannot read HT_SECONDARY_INDEX: " + s)
+	}
+
+	currentTime = time.Now()
 }

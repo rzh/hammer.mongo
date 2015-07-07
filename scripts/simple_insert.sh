@@ -26,6 +26,14 @@ export HT_USE_LEGACY_WRITE=0
 #   N : N > 0 to specify TTL in seconds
 export HT_INDEX_TTL=0
 
+# whether to use secondary index
+# valid value:
+#      yes
+#      no
+#
+# default to no when not specified
+export HT_SECONDARY_INDEX="no"
+
 # server URL
 export HT_SERVER_URL="localhost:27017"
 
