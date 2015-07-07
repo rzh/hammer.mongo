@@ -47,6 +47,7 @@ func (w *MongoWorker) Run(c <-chan int, t <-chan time.Time) {
 		// var stat_response_time uint64
 		var err error
 		var _warmup bool
+		var err_print_count int = 0
 
 		for {
 
@@ -100,6 +101,16 @@ func (w *MongoWorker) Run(c <-chan int, t <-chan time.Time) {
 					//}
 				} else {
 					stats.HammerStats.RecordError(w.id)
+
+					if err_print_count == 0 {
+						log.Println("ERROR: ", err)
+					}
+
+					err_print_count += 1
+
+					if err_print_count == 10 {
+						err_print_count = 0
+					}
 				}
 			}
 
