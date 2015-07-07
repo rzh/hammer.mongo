@@ -2,6 +2,7 @@ package hammer
 
 import (
 	"fmt"
+	"strconv"
 
 	"crypto/tls"
 	"crypto/x509"
@@ -33,6 +34,8 @@ var workers []MongoWorker
 var control_channel chan int
 var throttle_channel <-chan time.Time
 var monitor_channel *time.Ticker
+var sessionTimeout time.Duration
+var exitOnError bool
 
 // var stats Stats
 // var mongoStats MongoStats
@@ -270,7 +273,7 @@ func Init(
 		}
 
 		dialInfo = mgo.DialInfo{
-			Timeout:  10 * time.Second,
+			Timeout:  sessionTimeout,
 			FailFast: true,
 			Addrs:    strings.Split(_server, ","),
 			Dial:     dial,
@@ -278,7 +281,7 @@ func Init(
 
 	} else {
 		dialInfo = mgo.DialInfo{
-			Timeout:  10 * time.Second,
+			Timeout:  sessionTimeout,
 			FailFast: true,
 			Addrs:    strings.Split(_server, ","),
 		}
@@ -376,4 +379,26 @@ func Init(
 			log.Fatal(http.ListenAndServe("localhost:6789", nil))
 		}
 	}()
+}
+
+func init() {
+	s := os.Getenv("HT_TIMEOUT")
+
+	if s == "" {
+		sessionTimeout = 0
+	} else {
+		i, err := strconv.Atoi(s)
+
+		if err != nil {
+			log.Fatalln("Cannot read HT_TIME: ", s, " with error:", err)
+		}
+
+		sessionTimeout = time.Duration(i) * time.Second
+	}
+
+	s = os.Getenv("HT_EXIT_ON_ERROR")
+	exitOnError = false
+	if strings.ToLower(s) == "yes" {
+		exitOnError = true
+	}
 }

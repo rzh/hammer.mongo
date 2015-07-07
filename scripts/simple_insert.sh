@@ -21,6 +21,13 @@ export HT_CMD_TOTAL_OPS=0
 # whether to use legacy Op, value shall be 0: use writeCmd or 1: use legacy op
 export HT_USE_LEGACY_WRITE=0
 
+# timeout for operation, default 0, which will not timeout
+export HT_TIMEOUT=0
+
+# whether to exit hammer run when there is error
+# value:  yes | no
+export HT_EXIT_ON_ERROR=yes
+
 # specify index TTL
 #   0 : no TTL
 #   N : N > 0 to specify TTL in seconds

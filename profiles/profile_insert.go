@@ -112,9 +112,9 @@ func (i insertProfile) SendNext(s *mgo.Session, worker_id int) error {
 				{"documents", []bson.M{doc}}}, results)
 		}
 
-		panicOnError(err)
+		// panicOnError(err)
 	}
-	return nil // never come here when there is error
+	return err // never come here when there is error
 }
 
 func InitSimpleTest(session *mgo.Session, _initdb bool) {
