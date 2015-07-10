@@ -120,25 +120,13 @@ func (i insertProfile) SendNext(s *mgo.Session, worker_id int) error {
 func InitSimpleTest(session *mgo.Session, _initdb bool) {
 	log.Println("Initialize simple DB. with initdb flag ", _initdb)
 
-	_initdb = true
+	_initdb = true // for insert profile, always drop DB
 
 	if !_initdb {
 		panic("flag is false")
 	}
 
-	// drop the colelction here  TODO?  FIXME:
-	if _initdb {
-		log.Println(". Init DB, drop collections")
-		session.DB(_db_name).C("people").DropCollection()
-		// may drop DB here as well TODO:
-	} // this will be moved to each profile. FIXME:
-
 	var dbName, colName string
-
-	indexGroup := mgo.Index{
-		Key:         []string{"createdAt"},
-		ExpireAfter: _insertProfile.indexTTL,
-	}
 
 	for i := 1; i <= _multi_db; i++ {
 		dbName = fmt.Sprint(default_db_name_prefix, i)
@@ -150,17 +138,22 @@ func InitSimpleTest(session *mgo.Session, _initdb bool) {
 			if _initdb {
 				fmt.Println("Drop collection ", dbName+"."+colName)
 				collection.DropCollection()
-				// may drop DB here as well TODO:
-			} // this will be moved to each profile. FIXME:
+			}
 
 			fmt.Println("Create index for ", dbName+"."+colName)
-			err := collection.EnsureIndex(indexGroup)
-			if err != nil {
-				panicOnError(err)
+			if _insertProfile.indexTTL != 0 {
+				indexGroup := mgo.Index{
+					Key:         []string{"createdAt"},
+					ExpireAfter: _insertProfile.indexTTL,
+				}
+				err := collection.EnsureIndex(indexGroup)
+				if err != nil {
+					panicOnError(err)
+				}
 			}
 
 			if _insertProfile.secondaryIndex {
-				err = collection.EnsureIndexKey("group")
+				err := collection.EnsureIndexKey("group")
 				if err != nil {
 					panicOnError(err)
 				}
