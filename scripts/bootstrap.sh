@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
 VERSION="v0.1-latest"
-SCRIPTS=(bulk_insert.bash simple_insert.sh config.sh contended_update.sh single_query.sh capped_insert.sh capped_insert_read.sh)
+SCRIPTS=(bulk_insert.bash simple_insert.sh config.sh contended_update.sh single_query.sh capped_insert.sh capped_insert_read.sh evergreen_insert.sh)
 echo "bootstrap hammer.time"
 
 if [ -f hammer.tar.gz ]; then
